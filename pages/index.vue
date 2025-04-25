@@ -4,7 +4,7 @@
         <header class="mb-12 text-center">
             <h1 class="text-4xl font-bold mb-2">Generador de Anexo III subvenciones Parla 2025</h1>
             <p class="text-lg text-gray-600 dark:text-gray-400">
-                Sube tu archivo Excel y genera automáticamente los documentos PDF necesarios para tu asociación de forma
+                Sube tu archivo CSV y genera automáticamente los documentos PDF necesarios para tu asociación de forma
                 rápida y sencilla.
             </p>
         </header>
@@ -15,11 +15,12 @@
             <ol class="list-decimal list-inside space-y-4">
                 <li>
                     <UIcon name="i-heroicons-document-arrow-down" class="mr-2 align-middle" />
-                    <strong>Descarga la Plantilla CSV:</strong> Asegúrate de que tus datos siguen el formato correcto.
+                    <strong>Descarga la Plantilla CSV:</strong> Usa el botón abajo para obtener el formato correcto.
                 </li>
                 <li>
                     <UIcon name="i-heroicons-table-cells" class="mr-2 align-middle" />
-                    <strong>Rellena tus Datos:</strong> Completa la plantilla CSV con la información requerida.
+                    <strong>Rellena tus Datos:</strong> Completa la plantilla CSV con la información requerida (fechas,
+                    importes, etc.).
                 </li>
                 <li>
                     <UIcon name="i-heroicons-arrow-up-tray" class="mr-2 align-middle" />
@@ -33,18 +34,23 @@
                         <li>Los archivos PDF deben llamarse <code>facturaNNN.pdf</code> (ej.
                             <code>factura001.pdf</code>, <code>factura042.pdf</code>).
                         </li>
-                        <li>El número <code>NNN</code> debe coincidir con la columna 'number' del CSV.</li>
+                        <li>El número <code>NNN</code> debe coincidir con la columna 'number' del CSV (ej. '1' o '42').
+                        </li>
                     </ul>
+                </li>
+                <li>
+                    <UIcon name="i-heroicons-information-circle" class="mr-2 align-middle" />
+                    <strong>Introduce Datos Asociación:</strong> Rellena el nombre, CIF y datos del representante.
                 </li>
                 <li>
                     <UIcon name="i-heroicons-cog-6-tooth" class="mr-2 align-middle" />
                     <strong>Genera los Documentos:</strong> Haz clic en "Generar Documentos". Se creará el Anexo III y,
-                    si seleccionaste una carpeta, un PDF adicional con las facturas encontradas.
+                    si seleccionaste una carpeta, un PDF adicional con las facturas adjuntas.
                 </li>
                 <li>
                     <UIcon name="i-heroicons-arrow-down-tray" class="mr-2 align-middle" />
                     <strong>Descarga tus Documentos:</strong> Una vez generados, podrás descargar los PDFs
-                    individualmente.
+                    resultantes.
                 </li>
             </ol>
         </section>
@@ -53,22 +59,27 @@
         <section class="mb-12">
             <h2 class="text-2xl font-semibold mb-6">Información y Carga de Datos</h2>
 
-            <!-- Datos Asociación (sin cambios) -->
+            <!-- Datos Asociación -->
             <UCard class="mb-6">
                 <template #header>
-                    <h3 class="text-lg font-medium">Datos de la Asociación y Representante</h3>
+                    <h3 class="text-lg font-medium">Datos de la Asociación y Representante (Obligatorio)</h3>
                 </template>
-                <UForm :state="{}" class="space-y-4 space-x-4 flex flex-row flex-wrap">
-                    <UFormField label="Nombre de la Asociación" name="associationName" required>
+                <!-- Usamos formData directamente, ya que es reactivo -->
+                <UForm :state="formData" class="space-y-4 space-x-4 flex flex-row flex-wrap">
+                    <UFormField label="Nombre de la Asociación" name="associationName" required
+                        class="flex-1 min-w-[250px]">
                         <UInput v-model="formData.associationName" placeholder="Asociación Ejemplo XYZ" />
                     </UFormField>
-                    <UFormField label="CIF de la Asociación" name="associationCif" required>
+                    <UFormField label="CIF de la Asociación" name="associationCif" required
+                        class="flex-1 min-w-[150px]">
                         <UInput v-model="formData.associationCif" placeholder="G12345678" />
                     </UFormField>
-                    <UFormField label="Nombre del Representante" name="representativeName" required>
+                    <UFormField label="Nombre del Representante" name="representativeName" required
+                        class="flex-1 min-w-[250px]">
                         <UInput v-model="formData.representativeName" placeholder="Juan Pérez García" />
                     </UFormField>
-                    <UFormField label="CIF/DNI del Representante" name="representativeId" required>
+                    <UFormField label="CIF/DNI del Representante" name="representativeId" required
+                        class="flex-1 min-w-[150px]">
                         <UInput v-model="formData.representativeId" placeholder="12345678A" />
                     </UFormField>
                 </UForm>
@@ -82,47 +93,47 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                     <!-- Columna 1: Carga CSV Obligatoria -->
-                    <div class="border p-4 rounded-md">
+                    <div class="border p-4 rounded-md flex flex-col">
                         <h4 class="font-semibold mb-3">1. Cargar Archivo CSV (Obligatorio)</h4>
                         <UFormField label="Archivo CSV (.csv)" name="csvFile" required>
                             <UInput type="file" size="lg" accept=".csv, text/csv"
                                 :disabled="isGenerating || isProcessingFolder" @change="handleFileChange" />
                         </UFormField>
-                        <div class="flex items-center space-x-4 mt-2">
+                        <div class="flex items-center space-x-4 mt-2 mb-4">
                             <UButton variant="outline" icon="i-heroicons-document-arrow-down"
-                                label="Descargar Plantilla CSV" :disabled="isGenerating || isProcessingFolder"
-                                @click="downloadTemplate" />
+                                label="Descargar Plantilla CSV" href="/Facturas Subvención - Plantilla.csv" external
+                                :disabled="isGenerating || isProcessingFolder" />
                             <!-- Info Archivo Cargado -->
                             <div class="text-sm flex-grow">
                                 <span v-if="!csvFile" class="text-gray-500 dark:text-gray-400">(No hay archivo
                                     cargado)</span>
-                                <span v-else class="text-green-600 dark:text-green-400 truncate">
+                                <span v-else class="text-green-600 dark:text-green-400 truncate" :title="csvFile.name">
                                     <UIcon name="i-heroicons-check-circle" class="mr-1" /> {{ csvFile.name }} ({{
                                         csvData.length }}
                                     filas válidas)
                                 </span>
-                                <div v-if="parsingError && parsingRowErrors.length === 0" class="text-red-500 mt-1">
+                                <div v-if="parsingError && parsingRowErrors.length === 0" class="text-red-500 mt-1"
+                                    :title="parsingError">
                                     Error General: {{ parsingError }}
                                 </div>
                             </div>
                         </div>
 
                         <!-- Tabla de Errores de Parseo CSV -->
-                        <div v-if="parsingRowErrors.length > 0" class="mt-4">
-                            <h5 class="text-red-600 dark:text-red-400 font-semibold mb-2">Errores encontrados en el CSV:
-                            </h5>
+                        <div v-if="parsingRowErrors.length > 0" class="mt-4 overflow-auto flex-grow">
+                            <h5 class="text-red-600 dark:text-red-400 font-semibold mb-2">Errores encontrados en el CSV
+                                ({{
+                                    parsingRowErrors.length }}):</h5>
                             <UTable :data="parsingRowErrors" :columns="[
                                 { accessorKey: 'line', header: 'Línea CSV' },
                                 { accessorKey: 'message', header: 'Error' }
                             ]" />
                         </div>
-
                     </div>
 
                     <!-- Columna 2: Selección Carpeta Opcional -->
                     <div class="border p-4 rounded-md">
                         <h4 class="font-semibold mb-3">2. (Opcional) Adjuntar Facturas PDF</h4>
-
                         <UTooltip class="w-full">
                             <template #text>
                                 <div class="max-w-xs text-wrap">
@@ -130,8 +141,7 @@
                                     CSV.<br>
                                     Los archivos deben nombrarse <code>facturaNNN.pdf</code> (ej:
                                     <code>factura001.pdf</code>, <code>factura015.pdf</code>).<br>
-                                    El número <code>NNN</code> se obtiene de la columna 'number' del CSV, añadiendo
-                                    ceros a la izquierda si es necesario.
+                                    El número <code>NNN</code> se obtiene de la columna 'number' del CSV.
                                 </div>
                             </template>
                             <UButton class="w-full" icon="i-heroicons-folder-arrow-down"
@@ -142,22 +152,24 @@
 
                         <!-- Feedback Selección Carpeta -->
                         <div class="mt-3 text-sm space-y-1">
+                            <div v-if="searchError" class="text-red-500">
+                                Error Carpeta: {{ searchError }}
+                            </div>
                             <div v-if="invoiceFolderHandle">
                                 <UIcon name="i-heroicons-check-circle" class="text-green-500 mr-1" />
-                                Carpeta seleccionada.
-                                <span v-if="!isProcessingFolder"> ({{ foundInvoicePdfs.size }} facturas encontradas, {{
-                                    missingInvoiceNumbers.length }} faltantes)</span>
+                                Carpeta seleccionada: <i>{{ invoiceFolderHandle.name }}</i>
+                                <span v-if="!isProcessingFolder"> ({{ foundInvoicePdfs.size }} facturas encontradas de
+                                    {{
+                                        csvData.length }} en CSV)</span>
                             </div>
-                            <div v-else class="text-gray-500 dark:text-gray-400">
+                            <div v-else-if="!searchError" class="text-gray-500 dark:text-gray-400">
                                 (No se ha seleccionado carpeta)
                             </div>
-                            <div v-if="csvMergeError && !isMergingCsvPdfs" class="text-red-500">
-                                Error Facturas: {{ csvMergeError }}
-                            </div>
-                            <div v-if="missingInvoiceNumbers.length > 0 && !isProcessingFolder"
+                            <div v-if="missingInvoiceNumbers.length > 0 && !isProcessingFolder && !searchError"
                                 class="text-amber-600 dark:text-amber-400">
-                                <span class="font-medium">Facturas no encontradas:</span> {{
-                                    missingInvoiceNumbers.join(', ') }}
+                                <span class="font-medium">Facturas del CSV no encontradas en carpeta (formato incorrecto
+                                    o
+                                    ausentes):</span> {{ missingInvoiceNumbers.join(', ') }}
                             </div>
                         </div>
                     </div>
@@ -166,105 +178,99 @@
                 <!-- Botón Principal de Generación -->
                 <div class="text-center mt-6 pt-4 border-t">
                     <UButton size="xl" color="primary" icon="i-heroicons-cog-6-tooth" label="Generar Documentos"
-                        :loading="isGenerating || isMergingCsvPdfs"
-                        :disabled="csvData.length === 0 || !formData.associationName || !formData.associationCif || !formData.representativeName || !formData.representativeId || isGenerating || isMergingCsvPdfs || isProcessingFolder"
+                        :loading="isGenerating" :disabled="!isReadyToGenerate || isGenerating"
                         @click="generateDocuments" />
+                    <p v-if="!isReadyToGenerate && !isGenerating" class="text-xs text-gray-500 mt-1">
+                        (Necesitas cargar un CSV válido y rellenar los datos de la asociación)
+                    </p>
                 </div>
             </UCard>
         </section>
 
         <!-- Sección de Resultados -->
-        <section>
+        <section v-if="showResultsSection" class="mt-12">
             <h2 class="text-2xl font-semibold mb-6">Resultados de Generación</h2>
             <UCard>
                 <!-- Indicadores de Progreso -->
-                <div v-if="isGenerating || isMergingCsvPdfs" class="my-4 text-center space-y-4">
-                    <div v-if="isGenerating">
-                        <p class="mb-1">Generando Anexo III... ({{ generationProgress }}%)</p>
-                        <UProgress :value="generationProgress" indicator size="sm" />
+                <div v-if="isGenerating" class="my-4 text-center space-y-4">
+                    <div v-if="isGeneratingAnexo">
+                        <p class="mb-1">Generando Anexo III... ({{ anexoGenerationProgress }}%)</p>
+                        <UProgress :value="anexoGenerationProgress" indicator size="sm" />
                     </div>
-                    <div v-if="isMergingCsvPdfs">
-                        <p class="mb-1">Generando PDF de Facturas... ({{ csvMergeProgress }}%)</p>
-                        <UProgress :value="csvMergeProgress" indicator size="sm" />
+                    <div v-if="isMergingPdfs">
+                        <p class="mb-1">Generando PDF de Facturas Adjuntas... ({{ pdfMergeProgress }}%)</p>
+                        <UProgress :value="pdfMergeProgress" indicator size="sm" />
                     </div>
                 </div>
 
                 <!-- Área de resultados -->
-                <div v-if="(!isGenerating && !isMergingCsvPdfs) && (results.length > 0 || csvMergedPdfUrl || error || csvMergeError)"
-                    class="mt-6 text-center">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                        <!-- Resultados Anexo III -->
-                        <div class="border rounded-md p-4">
-                            <h3 class="text-lg font-medium mb-2">Anexo III</h3>
-                            <div v-if="results.length > 0">
-                                <p class="text-green-600 dark:text-green-400 mb-4">¡Anexo III generado con éxito!</p>
-                                <ul class="space-y-2 text-left max-w-md mx-auto mb-4">
-                                    <li v-for="(result, index) in results" :key="`anexo-${index}`">
-                                        <a :href="result.url" :download="result.name"
-                                            :title="`Descargar ${result.name}`"
-                                            class="text-primary hover:underline flex items-center">
-                                            <UIcon name="i-heroicons-document-arrow-down" class="mr-2 flex-shrink-0" />
-                                            <span class="truncate">{{ result.name }}</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div v-if="error">
-                                <p class="text-red-600 dark:text-red-400 font-medium">Error al generar Anexo III:</p>
-                                <p class="text-red-600 dark:text-red-400 text-sm">{{ error }}</p>
-                            </div>
-                            <div v-if="results.length === 0 && !error" class="text-gray-500 dark:text-gray-400">
-                                (No generado)
-                            </div>
-                        </div>
-
-                        <!-- Resultados Facturas Fusionadas -->
-                        <div class="border rounded-md p-4">
-                            <h3 class="text-lg font-medium mb-2">Facturas Adjuntas</h3>
-                            <div v-if="csvMergedPdfUrl">
-                                <p class="text-green-600 dark:text-green-400 mb-4">¡PDF de facturas generado con éxito!
-                                </p>
-                                <div class="max-w-md mx-auto mb-4">
-                                    <a :href="csvMergedPdfUrl" download="Facturas_Adjuntas.pdf"
-                                        title="Descargar PDF de Facturas"
-                                        class="text-primary hover:underline flex items-center justify-center">
+                    <!-- Resultados Anexo III -->
+                    <div class="border rounded-md p-4">
+                        <h3 class="text-lg font-medium mb-2">Anexo III</h3>
+                        <div v-if="anexoResults.length > 0">
+                            <p class="text-green-600 dark:text-green-400 mb-4">¡Anexo III generado con éxito!</p>
+                            <ul class="space-y-2 text-left max-w-md mx-auto mb-4">
+                                <li v-for="(result, index) in anexoResults" :key="`anexo-${index}`">
+                                    <a :href="result.url" :download="result.name" :title="`Descargar ${result.name}`"
+                                        class="text-primary hover:underline flex items-center">
                                         <UIcon name="i-heroicons-document-arrow-down" class="mr-2 flex-shrink-0" />
-                                        <span class="truncate">Facturas_Adjuntas.pdf</span>
+                                        <span class="truncate">{{ result.name }}</span>
                                     </a>
-                                </div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div v-if="anexoError">
+                            <p class="text-red-600 dark:text-red-400 font-medium">Error al generar Anexo III:</p>
+                            <p class="text-red-600 dark:text-red-400 text-sm">{{ anexoError }}</p>
+                        </div>
+                        <div v-if="anexoResults.length === 0 && !anexoError" class="text-gray-500 dark:text-gray-400">
+                            (No generado o pendiente)
+                        </div>
+                    </div>
+
+                    <!-- Resultados Facturas Fusionadas -->
+                    <div class="border rounded-md p-4">
+                        <h3 class="text-lg font-medium mb-2">Facturas Adjuntas (PDF Único)</h3>
+                        <div v-if="mergedPdfUrl">
+                            <p class="text-green-600 dark:text-green-400 mb-4">¡PDF de facturas adjuntas generado con
+                                éxito!</p>
+                            <div class="max-w-md mx-auto mb-4">
+                                <a :href="mergedPdfUrl" download="Facturas_Adjuntas.pdf"
+                                    title="Descargar PDF de Facturas Adjuntas"
+                                    class="text-primary hover:underline flex items-center justify-center">
+                                    <UIcon name="i-heroicons-document-arrow-down" class="mr-2 flex-shrink-0" />
+                                    <span class="truncate">Facturas_Adjuntas.pdf</span>
+                                </a>
                             </div>
-                            <div v-if="csvMergeError">
-                                <p class="text-red-600 dark:text-red-400 font-medium">Error al generar PDF de Facturas:
-                                </p>
-                                <p class="text-red-600 dark:text-red-400 text-sm">{{ csvMergeError }}</p>
-                            </div>
-                            <div v-if="!csvMergedPdfUrl && !csvMergeError && !invoiceFolderHandle"
-                                class="text-gray-500 dark:text-gray-400">
-                                (No se seleccionó carpeta)
-                            </div>
-                            <div v-if="!csvMergedPdfUrl && !csvMergeError && invoiceFolderHandle && foundInvoicePdfs.size === 0"
-                                class="text-amber-600 dark:text-amber-400">
-                                (No se encontraron facturas válidas en la carpeta)
-                            </div>
-                            <div v-if="!csvMergedPdfUrl && !csvMergeError && invoiceFolderHandle && foundInvoicePdfs.size > 0 && !isMergingCsvPdfs"
-                                class="text-gray-500 dark:text-gray-400">
-                                (Pendiente de generar)
-                            </div>
+                            <p v-if="pdfMergeError" class="text-amber-600 dark:text-amber-400 text-xs mt-2">Nota:
+                                Algunas
+                                facturas pudieron dar error durante la fusión. {{ pdfMergeError }}</p>
+                        </div>
+                        <div v-else-if="pdfMergeError && !mergedPdfUrl">
+                            <p class="text-red-600 dark:text-red-400 font-medium">Error al generar PDF de Facturas:</p>
+                            <p class="text-red-600 dark:text-red-400 text-sm">{{ pdfMergeError }}</p>
+                        </div>
+                        <div v-else-if="!invoiceFolderHandle" class="text-gray-500 dark:text-gray-400">
+                            (No se seleccionó carpeta para adjuntar facturas)
+                        </div>
+                        <div v-else-if="foundInvoicePdfs.size === 0 && !searchError"
+                            class="text-amber-600 dark:text-amber-400">
+                            (No se encontraron facturas válidas en la carpeta seleccionada)
+                        </div>
+                        <div v-else-if="invoiceFolderHandle && foundInvoicePdfs.size > 0 && !isGenerating && !mergedPdfUrl && !pdfMergeError"
+                            class="text-gray-500 dark:text-gray-400">
+                            (Facturas encontradas, pendiente de generar PDF adjunto)
                         </div>
                     </div>
                 </div>
 
                 <!-- Mensaje si no hay acciones realizadas -->
-                <div v-if="!isGenerating && !isMergingCsvPdfs && results.length === 0 && !csvMergedPdfUrl && !error && !csvMergeError"
+                <div v-if="!isGenerating && anexoResults.length === 0 && !mergedPdfUrl && !anexoError && !pdfMergeError && !parsingError"
                     class="text-center text-gray-500 dark:text-gray-400 py-4">
                     Carga un archivo CSV y haz clic en "Generar Documentos" para ver los resultados aquí.
                 </div>
-
-                <!-- Botón Descargar Todo (Eliminado temporalmente, necesita reimplementación ZIP) -->
-                <!-- <div v-if="..." class="text-center mt-6 pt-4 border-t">
-                    <UButton variant="outline" icon="i-heroicons-archive-box-arrow-down" label="Descargar Todo" ... />
-                </div> -->
 
             </UCard>
         </section>
@@ -273,552 +279,119 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+// Consolidar importaciones de vue
+import { ref, reactive, computed, onUnmounted } from 'vue';
 import { useAppConfig } from '#app';
 import { parse, getTime, isValid } from 'date-fns';
-import type { PDFDocument, PDFForm } from 'pdf-lib';
-import { PDFDocument as PDFLibDocument } from 'pdf-lib';
-import type { Factura } from '~/types';
+// Eliminar importación no usada de Factura
+// import type { Factura } from '~/types';
 
-import {
-    loadPdfTemplate,
-    fillInvoiceRow,
-    finalizePage,
-    savePdfToBlobUrl,
-    type PdfTemplate,
-} from '~/utils/pdfUtils';
+// Importar Composables
+import { useCsvHandling } from '~/composables/useCsvHandling';
+import { useInvoiceFolder } from '~/composables/useInvoiceFolder';
+import { useDocumentGeneration } from '~/composables/useDocumentGeneration';
 
-// Configuración App
+// Configuración App (Fechas)
 const appConfig = useAppConfig();
 const { startDate: configStartDateString, endDate: configEndDateString } = appConfig.invoiceDateRange;
 const startDate = parse(configStartDateString, 'dd/MM/yyyy', new Date());
 const endDate = parse(configEndDateString, 'dd/MM/yyyy', new Date());
+
+// Validar fechas de configuración
 if (!isValid(startDate) || !isValid(endDate)) {
-    console.error('Fechas de inicio/fin en app.config.ts no son válidas!');
+    console.error('¡Error Crítico! Las fechas de inicio/fin en app.config.ts no son válidas! Verifica el formato dd/MM/yyyy.');
+    // Podríamos mostrar un error al usuario aquí o deshabilitar la app
 }
 const startDateTimestamp = isValid(startDate) ? getTime(startDate) : -Infinity;
 const endDateTimestamp = isValid(endDate) ? getTime(endDate) : Infinity;
 
-// Estado Formulario Asociación
+
+// --- Estado Formulario Asociación ---
 const formData = reactive({
-    associationName: 'Asociación Ejemplo XYZ',
-    associationCif: 'G12345678',
-    representativeName: 'Juan Pérez García',
-    representativeId: '12345678A',
-    destinationFolder: ''
+    associationName: '',
+    associationCif: '',
+    representativeName: '',
+    representativeId: ''
 });
 
-// Configuración Columnas CSV
-interface ColumnOptions {
-    name: keyof Factura;
-    parse?: (value: string) => number | string;
-}
-function convertFloat(input: string): number {
+// --- Inicializar Composables ---
 
-    const cleanedInput = input.replace(/\s*€/g, "").replace(/,/g, ".");
-    const result = parseFloat(cleanedInput);
-    return result;
-}
-const columns: ColumnOptions[] = [
-    { name: "number" },
-    { name: "providerNumber" },
-    { name: "date" },
-    { name: "activity" },
-    { name: "concept" },
-    { name: "nif" },
-    { name: "expense", parse: convertFloat },
-    { name: "grantExpense", parse: convertFloat }
-];
+const {
+    csvFile,
+    csvData,
+    parsingError,
+    parsingRowErrors,
+    handleFileChange,
+    setInvoiceFolderHandleRef,
+    setFoundInvoicePdfsRef,
+    setMissingInvoiceNumbersRef,
+    setCsvMergedPdfUrlRef,
+    setCsvMergeErrorRef,
+    setGenerationResultsRef,
+    setGenerationErrorRef
+} = useCsvHandling(startDateTimestamp, endDateTimestamp, configStartDateString, configEndDateString);
 
-// --- Estado Carga CSV ---
-const csvFile = ref<File | null>(null);
-const csvData = ref<Factura[]>([]);
-const parsingError = ref<string | null>(null);
-const parsingRowErrors = ref<{ line: number; message: string }[]>([]);
+const {
+    invoiceFolderHandle,
+    foundInvoicePdfs,
+    missingInvoiceNumbers,
+    isProcessingFolder,
+    searchError,
+    selectAndFindInvoicePdfs,
+} = useInvoiceFolder(csvData);
 
-// --- Estado Generación Anexo III ---
-const isGenerating = ref(false);
-const generationProgress = ref(0);
-const results = ref<{ name: string; url: string }[]>([]); // Solo para Anexo III
-const error = ref<string | null>(null); // Error específico Anexo III
+const {
+    isGenerating,
+    isGeneratingAnexo,
+    anexoGenerationProgress,
+    anexoResults,
+    anexoError,
+    isMergingPdfs,
+    pdfMergeProgress,
+    mergedPdfUrl,
+    pdfMergeError,
+    generateDocuments,
+} = useDocumentGeneration(csvData, formData, invoiceFolderHandle, foundInvoicePdfs);
 
-// --- Estado Selección Carpeta y Fusión Facturas (Opcional) ---
-const invoiceFolderHandle = ref<FileSystemDirectoryHandle | null>(null);
-const foundInvoicePdfs = ref<Map<string, File>>(new Map()); // Clave: factura.number, Valor: File
-const missingInvoiceNumbers = ref<string[]>([]);
-const isProcessingFolder = ref(false); // Feedback al buscar archivos
-const isMergingCsvPdfs = ref(false); // Estado para la fusión opcional
-const csvMergeProgress = ref(0);
-const csvMergedPdfUrl = ref<string | null>(null); // URL del PDF de facturas fusionadas
-const csvMergeError = ref<string | null>(null); // Error específico fusión facturas
+// --- Lógica de UI y Habilitación ---
 
-// --- Funciones Auxiliares ---
+const isReadyToGenerate = computed(() =>
+    csvData.value.length > 0 &&
+    !!formData.associationName &&
+    !!formData.associationCif &&
+    !!formData.representativeName &&
+    !!formData.representativeId
+);
 
-/**
- * Formatea un número de factura (string) a 3 dígitos con ceros a la izquierda.
- */
-const formatInvoiceNumber = (numStr: string | undefined): string => {
-    if (!numStr) return 'invalid'; // Evitar errores si el número no existe
-    const cleanNum = numStr.trim();
-    if (!/^[0-9]+$/.test(cleanNum)) return 'invalid'; // Asegurarse que sean solo dígitos
-    return cleanNum.padStart(3, '0');
-};
+const showResultsSection = computed(() =>
+    anexoResults.value.length > 0 || mergedPdfUrl.value || anexoError.value || pdfMergeError.value || isGenerating.value
+);
 
-/**
- * Carga un archivo PDF y devuelve el objeto PDFDocument de pdf-lib.
- */
-const loadPdf = async (file: File): Promise<PDFDocument> => {
-    const arrayBuffer = await file.arrayBuffer();
-    try {
-        return await PDFLibDocument.load(arrayBuffer, { ignoreEncryption: true });
-    } catch (loadError) {
-        console.error(`Error al cargar ${file.name}:`, loadError);
-        throw new Error(`No se pudo cargar ${file.name}. Puede estar corrupto o protegido.`);
+// --- Conectar Reseteo de CSV con otros Composables ---
+setInvoiceFolderHandleRef(invoiceFolderHandle);
+setFoundInvoicePdfsRef(foundInvoicePdfs);
+setMissingInvoiceNumbersRef(missingInvoiceNumbers);
+setCsvMergedPdfUrlRef(mergedPdfUrl);
+setCsvMergeErrorRef(pdfMergeError);
+setGenerationResultsRef(anexoResults);
+setGenerationErrorRef(anexoError);
+
+// --- Limpieza al desmontar ---
+onUnmounted(() => {
+    if (mergedPdfUrl.value) {
+        URL.revokeObjectURL(mergedPdfUrl.value);
     }
-};
-
-// --- Funciones Principales ---
-
-/**
- * Parsea un string CSV a un array de objetos Factura.
- * Valida que la fecha de la factura esté dentro del rango definido en app.config.ts
- */
-const parseCsv = (csvString: string): Factura[] => {
-    const lines = csvString.trim().split('\n');
-    if (lines.length < 1) return [];
-    const data: Factura[] = [];
-    parsingError.value = null; // Resetear error general
-
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue; // Saltar líneas vacías
-        const values: string[] = [];
-        let currentField = '';
-        let inQuotes = false;
-        for (let j = 0; j < line.length; j++) {
-            const char = line[j];
-            const nextChar = line[j + 1];
-            if (char === '"' && !inQuotes && currentField.length === 0) {
-                inQuotes = true; continue;
-            }
-            if (char === '"' && inQuotes) {
-                if (nextChar === '"') { currentField += '"'; j++; }
-                else if (line[j + 1] === ',' || j + 1 === line.length) { inQuotes = false; continue; }
-                else { currentField += char; }
-            } else if (char === ',' && !inQuotes) {
-                values.push(currentField); currentField = '';
-            } else { currentField += char; }
-        }
-        values.push(currentField);
-
-        if (values.length !== columns.length) {
-            parsingRowErrors.value.push({ line: i + 1, message: `Número columnas incorrecto (${values.length} != ${columns.length}).` });
-            continue; // Saltar esta fila y continuar con la siguiente
-        }
-
-        const factura: Partial<Factura> = {};
-        let validRow = true;
-        let rawDateValue = '';
-
-        for (let k = 0; k < columns.length; k++) {
-            const column = columns[k];
-            const rawValue = values[k].trim();
-            if (column.name === 'date') rawDateValue = rawValue;
-            try {
-                const parsedValue = column.parse ? column.parse(rawValue) : rawValue;
-                const key = column.name as keyof Factura;
-
-
-                factura[key] = parsedValue as any;
-
-
-            } catch (parseError: unknown) {
-                parsingRowErrors.value.push({ line: i + 1, message: `Error formato columna '${column.name}'.` });
-                console.warn(`Detalle error parseo fila ${i + 1}, columna '${column.name}':`, parseError);
-                validRow = false; break; // Si falla un parse, la fila es inválida, salir del bucle de columnas
-            }
-        }
-
-        // Si el parseo de columnas falló, saltar al siguiente renglón
-        if (!validRow) continue;
-
-        // Validar fecha
-        if (rawDateValue) {
-            try {
-                let formattedDate = rawDateValue;
-                if (formattedDate.match(/^\d\//)) formattedDate = `0${formattedDate}`;
-                const invoiceDate = parse(formattedDate, 'dd/MM/yyyy', new Date());
-                if (!isValid(invoiceDate)) throw new Error(`Formato inválido.`);
-                const invoiceTimestamp = getTime(invoiceDate);
-                if (invoiceTimestamp < startDateTimestamp || invoiceTimestamp > endDateTimestamp) {
-                    throw new Error(`Fuera rango (${configStartDateString} - ${configEndDateString}).`);
-                }
-                factura.date = formattedDate;
-            } catch (dateError: unknown) {
-                parsingRowErrors.value.push({ line: i + 1, message: `Error fecha - ${(dateError instanceof Error) ? dateError.message : 'Inválida'}` });
-                validRow = false;
-            }
-        } else {
-            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor 'date'.` });
-            validRow = false;
-        }
-
-        // Validar campos numéricos requeridos
-        if (factura.expense === undefined) {
-            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor Total Factura` });
-            validRow = false;
-        }
-        if (factura.grantExpense === undefined) {
-            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor Gasto Justificable` });
-            validRow = false;
-        }
-
-        // Si después de todas las validaciones la fila es válida, añadirla
-        if (validRow) {
-            data.push(factura as Factura);
-        } // Si no es válida, ya se añadió el error a parsingRowErrors y simplemente no se añade a data
-
-    }
-
-    // Al final, si hubo errores, asignar un mensaje resumen
-    if (parsingRowErrors.value.length > 0) {
-        parsingError.value = `Se encontraron errores en ${parsingRowErrors.value.length} fila(s) del CSV. Ver detalles abajo.`;
-    }
-
-    // Devolver siempre las filas que sí fueron válidas
-    return data;
-};
-
-// Maneja la selección del archivo CSV
-const handleFileChange = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    // Resetear todo lo relacionado con CSV y la carpeta opcional
-    csvFile.value = null;
-    csvData.value = [];
-    parsingError.value = null;
-    error.value = null;
-    results.value = [];
-    parsingRowErrors.value = [];
-    invoiceFolderHandle.value = null;
-    foundInvoicePdfs.value.clear();
-    missingInvoiceNumbers.value = [];
-    csvMergedPdfUrl.value = null;
-    csvMergeError.value = null;
-
-    if (target.files && target.files[0]) {
-        const file = target.files[0];
-        csvFile.value = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const content = e.target?.result as string;
-                if (!content) throw new Error("No se pudo leer el contenido.");
-                parsingRowErrors.value = [];
-                csvData.value = parseCsv(content);
-                if (csvData.value.length === 0 && !parsingError.value) {
-                    parsingError.value = "CSV vacío o sin datos válidos.";
-                }
-            } catch (err: unknown) {
-                parsingError.value = (err instanceof Error) ? err.message : "Error desconocido al procesar CSV.";
-                csvFile.value = null;
-                csvData.value = [];
-            }
-        };
-        reader.onerror = () => {
-            parsingError.value = "No se pudo leer el archivo CSV.";
-            csvFile.value = null;
-        };
-        reader.readAsText(file);
-    }
-};
-
-// Descarga la plantilla CSV
-const downloadTemplate = () => {
-    console.log('Descargando plantilla CSV...');
-    const csvHeader = columns.map(c => `"${c.name}"`).join(',');
-    const csvExample = '"1","P001","01/07/2024","Actividad A","Concepto A","A1234567Z",,"50.00","50.00","50.00",';
-    const csvContent = `${csvHeader}\n${csvExample}`;
-    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "plantilla_facturas.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-};
-
-/**
- * Abre selector de directorio y busca los PDF de facturas según CSV.
- */
-const selectAndFindInvoicePdfs = async () => {
-    if (!('showDirectoryPicker' in window) || typeof window.showDirectoryPicker !== 'function') {
-        csvMergeError.value = 'Navegador no soporta selección de carpetas.';
-        return;
-    }
-    if (csvData.value.length === 0) {
-        csvMergeError.value = 'Carga primero un archivo CSV.';
-        return;
-    }
-
-    isProcessingFolder.value = true;
-    invoiceFolderHandle.value = null; // Resetear por si seleccionan otra vez
-    foundInvoicePdfs.value.clear();
-    missingInvoiceNumbers.value = [];
-    csvMergeError.value = null;
-    csvMergedPdfUrl.value = null; // Resetear resultado anterior
-
-    try {
-        const handle = await window.showDirectoryPicker();
-        invoiceFolderHandle.value = handle;
-
-        const expectedFiles = new Map<string, string>(); // Map<formattedName, originalNumber>
-        csvData.value.forEach(factura => {
-            const formattedNum = formatInvoiceNumber(factura.number);
-            if (formattedNum !== 'invalid' && factura.number) {
-                expectedFiles.set(`factura${formattedNum}.pdf`, factura.number);
-            }
-        });
-
-        const foundMap = new Map<string, File>();
-        const tempMissing: string[] = Array.from(expectedFiles.values()); // Empezar con todos como faltantes
-
-        for await (const entry of handle.values()) {
-            if (entry.kind === 'file' && expectedFiles.has(entry.name.toLowerCase())) {
-                const originalNumber = expectedFiles.get(entry.name.toLowerCase())!;
-                try {
-                    const file = await entry.getFile();
-                    foundMap.set(originalNumber, file);
-                    // Quitar de la lista de faltantes
-                    const missingIndex = tempMissing.indexOf(originalNumber);
-                    if (missingIndex > -1) {
-                        tempMissing.splice(missingIndex, 1);
-                    }
-                    console.log(`Factura encontrada: ${entry.name} (Num: ${originalNumber})`);
-                } catch (fileError) {
-                    console.warn(`No se pudo acceder a ${entry.name}:`, fileError);
-                    csvMergeError.value = `Error al leer ${entry.name}. Verifica permisos.`;
-                    // No detener, pero marcar como no encontrada si falla la lectura
-                    if (!tempMissing.includes(originalNumber)) {
-                        tempMissing.push(originalNumber);
-                    }
-                }
-            }
-        }
-
-        foundInvoicePdfs.value = foundMap;
-        missingInvoiceNumbers.value = tempMissing;
-
-        if (foundMap.size === 0) {
-            csvMergeError.value = 'No se encontró ninguna factura con el formato esperado en la carpeta.';
-        } else if (tempMissing.length > 0) {
-            // Es un warning, no un error bloqueante si se encontraron algunas
-            console.warn(`Facturas del CSV no encontradas en la carpeta: ${tempMissing.join(', ')}`);
-        }
-
-    } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') {
-            console.log('Selección de carpeta cancelada.');
-            // No establecer error si cancela
-        } else if (err instanceof Error && err.name === 'NotAllowedError') {
-            csvMergeError.value = 'Permiso denegado para acceder a la carpeta.';
-        } else {
-            csvMergeError.value = `Error al procesar carpeta: ${(err instanceof Error) ? err.message : 'Desconocido'}`;
-        }
-        invoiceFolderHandle.value = null; // Resetear si hay error
-    } finally {
-        isProcessingFolder.value = false;
-    }
-};
-
-/**
- * Genera los documentos: Anexo III y opcionalmente el PDF de facturas.
- */
-const generateDocuments = async () => {
-    if (csvData.value.length === 0) {
-        error.value = 'Carga un archivo CSV válido primero.';
-        return;
-    }
-
-    // Nueva validación para datos de la asociación
-    if (!formData.associationName || !formData.associationCif || !formData.representativeName || !formData.representativeId) {
-        error.value = 'Completa los datos de la asociación y representante en el formulario.';
-        isGenerating.value = false; // Asegurarse de que el estado de carga se desactive
-        return;
-    }
-
-    // Resetear estados de generación
-    isGenerating.value = true;
-    isMergingCsvPdfs.value = !!invoiceFolderHandle.value && foundInvoicePdfs.value.size > 0;
-    error.value = null;
-    csvMergeError.value = null;
-    results.value = [];
-    if (csvMergedPdfUrl.value) URL.revokeObjectURL(csvMergedPdfUrl.value); // Limpiar URL anterior
-    csvMergedPdfUrl.value = null;
-    generationProgress.value = 0;
-    csvMergeProgress.value = 0;
-
-    // --- 1. Generación Anexo III (siempre se intenta) --- 
-    console.log('Iniciando generación de Anexo III...');
-    const pdfConfig = appConfig.pdfTemplate;
-    const MAX_ROWS = pdfConfig.maxRowsPerPage;
-    const fields = pdfConfig.fields;
-    const anexoDocsList: PDFDocument[] = [];
-    let anexoTotalAcc = 0;
-
-    try {
-        let actualAnexoDoc: PDFDocument | null = null;
-        let actualAnexoForm: PDFForm | null = null;
-        let invoiceInTemplateIndex = 0;
-        let subtotalAcc = 0;
-
-        const getNewAnexoPage = async (): Promise<PdfTemplate> => await loadPdfTemplate('/Anexo III.pdf');
-
-        const firstPageTemplate = await getNewAnexoPage();
-        actualAnexoDoc = firstPageTemplate.doc;
-        actualAnexoForm = firstPageTemplate.form;
-        anexoDocsList.push(actualAnexoDoc);
-        generationProgress.value = 5;
-
-        for (let i = 0; i < csvData.value.length; i++) {
-            const factura = csvData.value[i];
-            const proyectExpense = factura.grantExpense ?? 0;
-
-            if (factura.expense === undefined || !factura.number) {
-                console.warn(`Factura ${factura.number || 'desconocida'} saltada en Anexo III por datos faltantes.`);
-                continue; // Saltar fila en Anexo si faltan datos
-            }
-
-            if (invoiceInTemplateIndex >= MAX_ROWS) {
-                finalizePage(actualAnexoForm!, fields, {
-                    subtotal: subtotalAcc,
-                    entityName: formData.associationName,
-                    entityNif: formData.associationCif,
-                    deputyName: formData.representativeName,
-                    deputyNif: formData.representativeId
-                });
-                const nextPageTemplate = await getNewAnexoPage();
-                actualAnexoDoc = nextPageTemplate.doc;
-                actualAnexoForm = nextPageTemplate.form;
-                anexoDocsList.push(actualAnexoDoc);
-                invoiceInTemplateIndex = 0;
-                subtotalAcc = 0;
-            }
-
-            fillInvoiceRow(actualAnexoForm!, fields, factura, invoiceInTemplateIndex, proyectExpense);
-            subtotalAcc += proyectExpense;
-            anexoTotalAcc += proyectExpense;
-            invoiceInTemplateIndex++;
-            generationProgress.value = 5 + Math.round(((i + 1) / csvData.value.length) * 45); // Anexo III = 50% del progreso total
-        }
-
-        if (actualAnexoForm) {
-            finalizePage(actualAnexoForm, fields, {
-                total: anexoTotalAcc,
-                entityName: formData.associationName,
-                entityNif: formData.associationCif,
-                deputyName: formData.representativeName,
-                deputyNif: formData.representativeId
-            });
-        }
-
-        const finalAnexoDoc = await PDFLibDocument.create();
-
-        for (const docToCopyFrom of anexoDocsList) {
-            docToCopyFrom.getForm()?.flatten();
-            const [copiedPage] = await finalAnexoDoc.copyPages(docToCopyFrom, [0]);
-            finalAnexoDoc.addPage(copiedPage);
-        }
-
-        const anexoFilename = `AnexoIII_${formData.associationName || 'Asociacion'}.pdf`;
-        const anexoUrl = await savePdfToBlobUrl(finalAnexoDoc, anexoFilename);
-        results.value = [{ name: anexoFilename, url: anexoUrl }];
-        generationProgress.value = 50; // Anexo III completado (50% del total)
-        console.log('Anexo III generado con éxito.');
-
-    } catch (err: unknown) {
-        console.error('Error generando Anexo III:', err);
-        error.value = `Error Anexo III: ${(err instanceof Error) ? err.message : 'Desconocido'}`;
-        generationProgress.value = 50; // Marcar como completado aunque falle
-    } finally {
-        // Marcar Anexo III como no generando aquí si no hay fusión
-        if (!isMergingCsvPdfs.value) isGenerating.value = false;
-    }
-
-    // --- 2. Fusión Facturas PDF (si aplica) --- 
-    if (isMergingCsvPdfs.value) {
-        console.log(`Iniciando fusión de ${foundInvoicePdfs.value.size} facturas PDF encontradas...`);
-        const masterInvoicePdf = await PDFLibDocument.create();
-        let facturasProcesadas = 0;
-        const facturasAProcesar = csvData.value.filter(f => f.number && foundInvoicePdfs.value.has(f.number));
-
-        try {
-            for (const factura of facturasAProcesar) {
-                const file = foundInvoicePdfs.value.get(factura.number!)!;
-                console.log(` - Procesando ${file.name} (Num: ${factura.number})...`);
-                csvMergeProgress.value = Math.round((facturasProcesadas / facturasAProcesar.length) * 95); // Fusión = 50% del progreso total
-
-                try {
-                    const tempPdf = await loadPdf(file);
-                    const tempPages = await masterInvoicePdf.copyPages(tempPdf, tempPdf.getPageIndices());
-                    tempPages.forEach(page => masterInvoicePdf.addPage(page));
-                } catch (processError) {
-                    console.warn(`Error procesando ${file.name} para fusión:`, processError);
-                    if (!csvMergeError.value) csvMergeError.value = "Errores en facturas: ";
-                    csvMergeError.value += `${file.name}; `;
-                }
-                facturasProcesadas++;
-                // Pausa opcional
-                if (facturasProcesadas % 10 === 0) await new Promise(resolve => setTimeout(resolve, 20));
-            }
-
-            if (masterInvoicePdf.getPageCount() === 0) {
-                // Si no se pudo añadir ninguna página (todos los PDFs fallaron al cargar/copiar)
-                if (!csvMergeError.value) csvMergeError.value = "No se pudo añadir ninguna página de las facturas encontradas.";
-            } else {
-                console.log('Guardando PDF de facturas fusionadas...');
-                csvMergeProgress.value = 98;
-                const pdfBytes = await masterInvoicePdf.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                csvMergedPdfUrl.value = URL.createObjectURL(blob);
-                console.log('PDF de facturas generado:', csvMergedPdfUrl.value);
-            }
-
-            csvMergeProgress.value = 100;
-            console.log('Proceso de fusión de facturas completado.');
-
-        } catch (err: unknown) {
-            console.error('Error crítico durante fusión de facturas:', err);
-            if (!csvMergeError.value) csvMergeError.value = ""; else csvMergeError.value += " | ";
-            csvMergeError.value += `Error Fusión: ${(err instanceof Error) ? err.message : 'Desconocido'}`;
-            if (csvMergedPdfUrl.value) URL.revokeObjectURL(csvMergedPdfUrl.value);
-            csvMergedPdfUrl.value = null;
-            csvMergeProgress.value = 100; // Marcar como terminado aunque falle
-        } finally {
-            isMergingCsvPdfs.value = false;
-            // Ahora sí, marcar la generación general como terminada
-            isGenerating.value = false;
-        }
-    } else {
-        // Si no se hizo fusión, la generación general termina aquí
-        isGenerating.value = false;
-        if (invoiceFolderHandle.value && foundInvoicePdfs.value.size === 0) {
-            console.log('No se encontraron facturas válidas para fusionar.');
-            // Podríamos poner un warning/info en csvMergeError si se desea
-            // csvMergeError.value = 'No se encontraron facturas válidas en la carpeta seleccionada.'
-        }
-        else if (!invoiceFolderHandle.value) {
-            console.log('No se seleccionó carpeta para buscar facturas.');
-        }
-    }
-
-};
-
+    anexoResults.value.forEach(result => URL.revokeObjectURL(result.url));
+    console.log("Componente desmontado, URLs revocadas.");
+});
 
 </script>
 
 <style scoped>
 /* Estilos específicos si son necesarios */
+/* Ajuste para que la tabla de errores no crezca indefinidamente */
+.overflow-auto {
+    max-height: 300px;
+    /* O la altura que prefieras */
+}
 </style>
