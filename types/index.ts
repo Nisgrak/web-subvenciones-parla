@@ -8,6 +8,5 @@ export interface Factura {
     income: number | undefined;
     expense: number | undefined;
     total: number | undefined;
-    infancyExpense: number | undefined; // Usado actualmente para 'projectExpense' en Anexo III
-    participationExpense: number | undefined; // Otro posible campo de gasto
+    grantExpense: number | undefined; // Usado actualmente para 'projectExpense' en Anexo III
 } 

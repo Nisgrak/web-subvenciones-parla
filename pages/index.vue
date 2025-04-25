@@ -2,7 +2,7 @@
     <UContainer class="py-8">
         <!-- Encabezado -->
         <header class="mb-12 text-center">
-            <h1 class="text-4xl font-bold mb-2">Generador de Documentación PDF para Asociaciones</h1>
+            <h1 class="text-4xl font-bold mb-2">Generador de Anexo III subvenciones Parla 2025</h1>
             <p class="text-lg text-gray-600 dark:text-gray-400">
                 Sube tu archivo Excel y genera automáticamente los documentos PDF necesarios para tu asociación de forma
                 rápida y sencilla.
@@ -114,11 +114,7 @@
                             <UTable :data="parsingRowErrors" :columns="[
                                 { accessorKey: 'line', header: 'Línea CSV' },
                                 { accessorKey: 'message', header: 'Error' }
-                            ]">
-                                <template #message-data="{ row }">
-                                    <span class="text-wrap">{{ row.message }}</span>
-                                </template>
-                            </UTable>
+                            ]" />
                         </div>
 
                     </div>
@@ -315,20 +311,23 @@ const formData = reactive({
 // Configuración Columnas CSV
 interface ColumnOptions {
     name: keyof Factura;
-    parse?: (value: string) => number | undefined | string;
+    parse?: (value: string) => number | string;
 }
-function convertFloat(input: string): number | undefined {
-    if (!input) return undefined;
+function convertFloat(input: string): number {
+
     const cleanedInput = input.replace(/\s*€/g, "").replace(/,/g, ".");
     const result = parseFloat(cleanedInput);
-    return Number.isNaN(result) ? undefined : result;
+    return result;
 }
 const columns: ColumnOptions[] = [
-    { name: "number" }, { name: "providerNumber" }, { name: "date" },
-    { name: "activity" }, { name: "concept" }, { name: "nif" },
-    { name: "income", parse: convertFloat }, { name: "expense", parse: convertFloat },
-    { name: "total", parse: convertFloat }, { name: "infancyExpense", parse: convertFloat },
-    { name: "participationExpense", parse: convertFloat },
+    { name: "number" },
+    { name: "providerNumber" },
+    { name: "date" },
+    { name: "activity" },
+    { name: "concept" },
+    { name: "nif" },
+    { name: "expense", parse: convertFloat },
+    { name: "grantExpense", parse: convertFloat }
 ];
 
 // --- Estado Carga CSV ---
@@ -429,12 +428,9 @@ const parseCsv = (csvString: string): Factura[] => {
                 const parsedValue = column.parse ? column.parse(rawValue) : rawValue;
                 const key = column.name as keyof Factura;
 
-                // Re-aplicar la asignación segura de tipos
-                if (key === 'income' || key === 'expense' || key === 'total' || key === 'infancyExpense' || key === 'participationExpense') {
-                    factura[key] = parsedValue as number | undefined;
-                } else {
-                    factura[key] = parsedValue as string;
-                }
+
+                factura[key] = parsedValue as any;
+
 
             } catch (parseError: unknown) {
                 parsingRowErrors.value.push({ line: i + 1, message: `Error formato columna '${column.name}'.` });
@@ -469,11 +465,11 @@ const parseCsv = (csvString: string): Factura[] => {
 
         // Validar campos numéricos requeridos
         if (factura.expense === undefined) {
-            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor 'expense' (coste).` });
+            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor Total Factura` });
             validRow = false;
         }
-        if (factura.infancyExpense === undefined) {
-            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor 'infancyExpense' (gasto proyecto).` });
+        if (factura.grantExpense === undefined) {
+            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor Gasto Justificable` });
             validRow = false;
         }
 
@@ -688,7 +684,7 @@ const generateDocuments = async () => {
 
         for (let i = 0; i < csvData.value.length; i++) {
             const factura = csvData.value[i];
-            const proyectExpense = factura.infancyExpense ?? 0; // TODO: Confirmar campo!
+            const proyectExpense = factura.grantExpense ?? 0;
 
             if (factura.expense === undefined || !factura.number) {
                 console.warn(`Factura ${factura.number || 'desconocida'} saltada en Anexo III por datos faltantes.`);
@@ -820,11 +816,6 @@ const generateDocuments = async () => {
 
 };
 
-// TODO:
-// - ACLARAR QUÉ CAMPO USAR EN ANEXO III (infancyExpense o participationExpense)
-// - Implementar descarga ZIP real si se necesita
-// - Añadir validación más robusta a campos de formulario
-// - Considerar gestión de carpeta destino para guardar
 
 </script>
 
