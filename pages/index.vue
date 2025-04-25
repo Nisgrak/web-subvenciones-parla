@@ -279,8 +279,8 @@
 </template>
 
 <script setup lang="ts">
-// Consolidar importaciones de vue
-import { ref, reactive, computed, onUnmounted } from 'vue';
+// Quitar ref de las importaciones
+import { reactive, computed, onMounted, watch, onUnmounted } from 'vue';
 import { useAppConfig } from '#app';
 import { parse, getTime, isValid } from 'date-fns';
 // Eliminar importación no usada de Factura
@@ -290,6 +290,9 @@ import { parse, getTime, isValid } from 'date-fns';
 import { useCsvHandling } from '~/composables/useCsvHandling';
 import { useInvoiceFolder } from '~/composables/useInvoiceFolder';
 import { useDocumentGeneration } from '~/composables/useDocumentGeneration';
+
+// Clave para LocalStorage
+const LOCAL_STORAGE_KEY = 'associationFormData';
 
 // Configuración App (Fechas)
 const appConfig = useAppConfig();
@@ -313,6 +316,33 @@ const formData = reactive({
     representativeName: '',
     representativeId: ''
 });
+
+// --- Cargar datos desde LocalStorage al montar ---
+onMounted(() => {
+    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedData) {
+        try {
+            const parsedData = JSON.parse(savedData);
+            // Asignar valores al objeto reactivo existente
+            Object.assign(formData, parsedData);
+            console.log('Datos de asociación cargados desde localStorage.');
+        } catch (e) {
+            console.error('Error al parsear datos de asociación desde localStorage:', e);
+            // Opcional: limpiar localStorage si los datos están corruptos
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+        }
+    }
+});
+
+// --- Guardar datos en LocalStorage al cambiar ---
+watch(formData, (newData) => {
+    try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newData));
+    } catch (e) {
+        console.error('Error al guardar datos de asociación en localStorage:', e);
+    }
+}, { deep: true }); // deep: true para observar cambios en propiedades anidadas
+
 
 // --- Inicializar Composables ---
 

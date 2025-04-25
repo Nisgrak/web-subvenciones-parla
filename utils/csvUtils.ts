@@ -73,12 +73,21 @@ export const parseCsvContent = (
         return { data, errors, generalError: "El archivo CSV está vacío o solo contiene la cabecera." };
     }
 
-    // const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '')); // Comentado: No se usa actualmente
-    // Validar cabecera si es necesario
+    // Leer y limpiar los nombres de la cabecera REAL del archivo
+    const headerNames = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+    // Validar si el número de columnas en la cabecera coincide con lo esperado
+    if (headerNames.length !== csvColumns.length) {
+        return {
+            data,
+            errors: [{ line: 1, message: `Número de columnas en cabecera (${headerNames.length}) no coincide con lo esperado (${csvColumns.length}).` }],
+            generalError: "La estructura del CSV no coincide con la plantilla."
+        };
+    }
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (!line) continue; // Saltar líneas vacías
+        if (!line) continue;
 
         // Lógica de parseo de línea CSV (manejo de comillas)
         const values: string[] = [];
@@ -103,7 +112,9 @@ export const parseCsvContent = (
         values.push(currentField.trim());
 
         if (values.length !== csvColumns.length) {
-            errors.push({ line: i + 1, message: `Número columnas incorrecto (${values.length} encontrado, ${csvColumns.length} esperado).` });
+            // Usar los nombres de cabecera en el mensaje si están disponibles
+            const expectedCols = headerNames.join(', ');
+            errors.push({ line: i + 1, message: `Número columnas incorrecto (${values.length} encontrado, ${csvColumns.length} esperado: ${expectedCols}).` });
             continue;
         }
 
@@ -114,11 +125,14 @@ export const parseCsvContent = (
         for (let k = 0; k < csvColumns.length; k++) {
             const column = csvColumns[k];
             const rawValue = values[k];
+            // Obtener el nombre de la cabecera para usar en errores
+            const headerName = headerNames[k] || column.name; // Usar nombre interno como fallback
 
-            // Validar campos requeridos
+            // Validar campos requeridos usando el nombre de la cabecera
             if (column.required && !rawValue) {
-                errors.push({ line: i + 1, message: `Falta valor requerido en columna '${column.name}'.` });
-                validRow = false; continue; // No continuar procesando esta columna si falta valor requerido
+                // Usar headerName en el mensaje
+                errors.push({ line: i + 1, message: `Falta valor requerido en columna '${headerName}'.` });
+                validRow = false; continue;
             }
 
             if (column.isDate) rawDateValue = rawValue;
@@ -134,14 +148,16 @@ export const parseCsvContent = (
                     factura[key] = parsedValue;
                 } else if (parsedValue !== undefined && parsedValue !== null) { // Solo error si hay un valor con tipo incorrecto
                     const expectedType = (key === 'expense' || key === 'grantExpense' || key === 'income' || key === 'total') ? 'número' : 'texto';
-                    errors.push({ line: i + 1, message: `Error de tipo en columna '${column.name}'. Se esperaba ${expectedType}, se obtuvo ${typeof parsedValue}.` });
+                    // Usar headerName también en errores de tipo
+                    errors.push({ line: i + 1, message: `Error de tipo en columna '${headerName}'. Se esperaba ${expectedType}, se obtuvo ${typeof parsedValue}.` });
                     validRow = false;
                 }
                 // No romper el bucle aquí para recoger todos los errores de tipo en la fila
 
             } catch (parseError: unknown) {
-                errors.push({ line: i + 1, message: `Error formato columna '${column.name}'.` });
-                console.warn(`Detalle error parseo fila ${i + 1}, columna '${column.name}':`, parseError);
+                // Usar headerName en errores de formato
+                errors.push({ line: i + 1, message: `Error formato columna '${headerName}'.` });
+                console.warn(`Detalle error parseo fila ${i + 1}, columna '${headerName}':`, parseError);
                 validRow = false; // Marcar como inválida si falla el parse
             }
         }
@@ -170,12 +186,13 @@ export const parseCsvContent = (
                 }
                 factura.date = formattedDate; // Guardar la fecha formateada si es válida
             } catch (dateError: unknown) {
-                errors.push({ line: i + 1, message: `Error fecha '${rawDateValue}' - ${(dateError instanceof Error) ? dateError.message : 'Inválida'}` });
+                const dateHeaderName = headerNames[csvColumns.findIndex(c => c.isDate)] || 'date';
+                errors.push({ line: i + 1, message: `Error en columna '${dateHeaderName}' (valor: '${rawDateValue}') - ${(dateError instanceof Error) ? dateError.message : 'Inválida'}` });
                 validRow = false;
             }
         } else if (csvColumns.find(c => c.isDate)?.required) {
-            // Si la fecha es requerida (según csvColumns) y no se encontró rawDateValue (ya debería haber sido capturado antes, pero por si acaso)
-            errors.push({ line: i + 1, message: `Falta valor requerido 'date'.` });
+            const dateHeaderName = headerNames[csvColumns.findIndex(c => c.isDate)] || 'date';
+            errors.push({ line: i + 1, message: `Falta valor requerido en columna '${dateHeaderName}'.` });
             validRow = false;
         }
 
@@ -193,7 +210,7 @@ export const parseCsvContent = (
     }
 
     if (errors.length > 0) {
-        generalError = `Se encontraron errores en ${errors.length} fila(s) del CSV. Ver detalles.`;
+        generalError = `Se encontraron errores en ${errors.length} fila(s) del CSV. Revisa los detalles en la tabla.`;
     }
 
     return { data, errors, generalError };
