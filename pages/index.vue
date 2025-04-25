@@ -58,19 +58,19 @@
                 <template #header>
                     <h3 class="text-lg font-medium">Datos de la Asociación y Representante</h3>
                 </template>
-                <UForm :state="{}" class="space-y-4 space-x-4">
-                    <UFormGroup label="Nombre de la Asociación" name="associationName" required>
+                <UForm :state="{}" class="space-y-4 space-x-4 flex flex-row flex-wrap">
+                    <UFormField label="Nombre de la Asociación" name="associationName" required>
                         <UInput v-model="formData.associationName" placeholder="Asociación Ejemplo XYZ" />
-                    </UFormGroup>
-                    <UFormGroup label="CIF de la Asociación" name="associationCif" required>
+                    </UFormField>
+                    <UFormField label="CIF de la Asociación" name="associationCif" required>
                         <UInput v-model="formData.associationCif" placeholder="G12345678" />
-                    </UFormGroup>
-                    <UFormGroup label="Nombre del Representante" name="representativeName" required>
+                    </UFormField>
+                    <UFormField label="Nombre del Representante" name="representativeName" required>
                         <UInput v-model="formData.representativeName" placeholder="Juan Pérez García" />
-                    </UFormGroup>
-                    <UFormGroup label="CIF/DNI del Representante" name="representativeId" required>
+                    </UFormField>
+                    <UFormField label="CIF/DNI del Representante" name="representativeId" required>
                         <UInput v-model="formData.representativeId" placeholder="12345678A" />
-                    </UFormGroup>
+                    </UFormField>
                 </UForm>
             </UCard>
 
@@ -84,10 +84,10 @@
                     <!-- Columna 1: Carga CSV Obligatoria -->
                     <div class="border p-4 rounded-md">
                         <h4 class="font-semibold mb-3">1. Cargar Archivo CSV (Obligatorio)</h4>
-                        <UFormGroup label="Archivo CSV (.csv)" name="csvFile" required>
+                        <UFormField label="Archivo CSV (.csv)" name="csvFile" required>
                             <UInput type="file" size="lg" accept=".csv, text/csv"
                                 :disabled="isGenerating || isProcessingFolder" @change="handleFileChange" />
-                        </UFormGroup>
+                        </UFormField>
                         <div class="flex items-center space-x-4 mt-2">
                             <UButton variant="outline" icon="i-heroicons-document-arrow-down"
                                 label="Descargar Plantilla CSV" :disabled="isGenerating || isProcessingFolder"
@@ -99,13 +99,28 @@
                                 <span v-else class="text-green-600 dark:text-green-400 truncate">
                                     <UIcon name="i-heroicons-check-circle" class="mr-1" /> {{ csvFile.name }} ({{
                                         csvData.length }}
-                                    filas)
+                                    filas válidas)
                                 </span>
-                                <div v-if="parsingError" class="text-red-500 mt-1">
-                                    Error: {{ parsingError }}
+                                <div v-if="parsingError && parsingRowErrors.length === 0" class="text-red-500 mt-1">
+                                    Error General: {{ parsingError }}
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Tabla de Errores de Parseo CSV -->
+                        <div v-if="parsingRowErrors.length > 0" class="mt-4">
+                            <h5 class="text-red-600 dark:text-red-400 font-semibold mb-2">Errores encontrados en el CSV:
+                            </h5>
+                            <UTable :data="parsingRowErrors" :columns="[
+                                { accessorKey: 'line', header: 'Línea CSV' },
+                                { accessorKey: 'message', header: 'Error' }
+                            ]">
+                                <template #message-data="{ row }">
+                                    <span class="text-wrap">{{ row.message }}</span>
+                                </template>
+                            </UTable>
+                        </div>
+
                     </div>
 
                     <!-- Columna 2: Selección Carpeta Opcional -->
@@ -156,7 +171,7 @@
                 <div class="text-center mt-6 pt-4 border-t">
                     <UButton size="xl" color="primary" icon="i-heroicons-cog-6-tooth" label="Generar Documentos"
                         :loading="isGenerating || isMergingCsvPdfs"
-                        :disabled="csvData.length === 0 || isGenerating || isMergingCsvPdfs || isProcessingFolder"
+                        :disabled="csvData.length === 0 || !formData.associationName || !formData.associationCif || !formData.representativeName || !formData.representativeId || isGenerating || isMergingCsvPdfs || isProcessingFolder"
                         @click="generateDocuments" />
                 </div>
             </UCard>
@@ -267,6 +282,7 @@ import { useAppConfig } from '#app';
 import { parse, getTime, isValid } from 'date-fns';
 import type { PDFDocument, PDFForm } from 'pdf-lib';
 import { PDFDocument as PDFLibDocument } from 'pdf-lib';
+import type { Factura } from '~/types';
 
 import {
     loadPdfTemplate,
@@ -274,7 +290,6 @@ import {
     finalizePage,
     savePdfToBlobUrl,
     type PdfTemplate,
-    type Factura
 } from '~/utils/pdfUtils';
 
 // Configuración App
@@ -320,6 +335,7 @@ const columns: ColumnOptions[] = [
 const csvFile = ref<File | null>(null);
 const csvData = ref<Factura[]>([]);
 const parsingError = ref<string | null>(null);
+const parsingRowErrors = ref<{ line: number; message: string }[]>([]);
 
 // --- Estado Generación Anexo III ---
 const isGenerating = ref(false);
@@ -372,11 +388,11 @@ const parseCsv = (csvString: string): Factura[] => {
     const lines = csvString.trim().split('\n');
     if (lines.length < 1) return [];
     const data: Factura[] = [];
-    let currentParsingError: string | null = null; // Usar variable local para evitar sobreescribir errores de fecha
+    parsingError.value = null; // Resetear error general
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (!line) continue;
+        if (!line) continue; // Saltar líneas vacías
         const values: string[] = [];
         let currentField = '';
         let inQuotes = false;
@@ -396,65 +412,85 @@ const parseCsv = (csvString: string): Factura[] => {
         }
         values.push(currentField);
 
-        if (values.length === columns.length) {
-            const factura: Record<string, any> = {}; // Definir tipo explícito aquí
-            let validRow = true;
-            let rawDateValue = '';
+        if (values.length !== columns.length) {
+            parsingRowErrors.value.push({ line: i + 1, message: `Número columnas incorrecto (${values.length} != ${columns.length}).` });
+            continue; // Saltar esta fila y continuar con la siguiente
+        }
 
-            for (let k = 0; k < columns.length; k++) {
-                const column = columns[k];
-                const rawValue = values[k].trim();
-                if (column.name === 'date') rawDateValue = rawValue;
-                try {
-                    const parsedValue = column.parse ? column.parse(rawValue) : rawValue;
-                    const key = column.name as keyof Factura;
-                    if (typeof parsedValue === 'string') factura[key] = parsedValue;
-                    else if (typeof parsedValue === 'number') factura[key] = parsedValue;
-                    else if (parsedValue === undefined) factura[key] = undefined;
-                    else factura[key] = rawValue;
-                } catch (parseError: unknown) {
-                    currentParsingError = `Error formato columna '${column.name}' fila ${i + 1}.`;
-                    console.error(currentParsingError, parseError);
-                    validRow = false; break;
+        const factura: Partial<Factura> = {};
+        let validRow = true;
+        let rawDateValue = '';
+
+        for (let k = 0; k < columns.length; k++) {
+            const column = columns[k];
+            const rawValue = values[k].trim();
+            if (column.name === 'date') rawDateValue = rawValue;
+            try {
+                const parsedValue = column.parse ? column.parse(rawValue) : rawValue;
+                const key = column.name as keyof Factura;
+
+                // Re-aplicar la asignación segura de tipos
+                if (key === 'income' || key === 'expense' || key === 'total' || key === 'infancyExpense' || key === 'participationExpense') {
+                    factura[key] = parsedValue as number | undefined;
+                } else {
+                    factura[key] = parsedValue as string;
                 }
+
+            } catch (parseError: unknown) {
+                parsingRowErrors.value.push({ line: i + 1, message: `Error formato columna '${column.name}'.` });
+                console.warn(`Detalle error parseo fila ${i + 1}, columna '${column.name}':`, parseError);
+                validRow = false; break; // Si falla un parse, la fila es inválida, salir del bucle de columnas
             }
+        }
 
-            if (validRow && rawDateValue) {
-                try {
-                    let formattedDate = rawDateValue;
-                    if (formattedDate.match(/^\d\//)) formattedDate = `0${formattedDate}`;
-                    const invoiceDate = parse(formattedDate, 'dd/MM/yyyy', new Date());
-                    if (!isValid(invoiceDate)) throw new Error(`Formato inválido.`);
-                    const invoiceTimestamp = getTime(invoiceDate);
-                    if (invoiceTimestamp < startDateTimestamp || invoiceTimestamp > endDateTimestamp) {
-                        throw new Error(`Fuera rango (${configStartDateString} - ${configEndDateString}).`);
-                    }
-                    factura.date = formattedDate;
-                } catch (dateError: unknown) {
-                    currentParsingError = `Error fecha fila ${i + 1}: ${(dateError instanceof Error) ? dateError.message : 'Inválida'}`;
-                    console.error(currentParsingError);
-                    validRow = false;
+        // Si el parseo de columnas falló, saltar al siguiente renglón
+        if (!validRow) continue;
+
+        // Validar fecha
+        if (rawDateValue) {
+            try {
+                let formattedDate = rawDateValue;
+                if (formattedDate.match(/^\d\//)) formattedDate = `0${formattedDate}`;
+                const invoiceDate = parse(formattedDate, 'dd/MM/yyyy', new Date());
+                if (!isValid(invoiceDate)) throw new Error(`Formato inválido.`);
+                const invoiceTimestamp = getTime(invoiceDate);
+                if (invoiceTimestamp < startDateTimestamp || invoiceTimestamp > endDateTimestamp) {
+                    throw new Error(`Fuera rango (${configStartDateString} - ${configEndDateString}).`);
                 }
-            } else if (validRow && !rawDateValue) {
-                currentParsingError = `Falta valor 'date' fila ${i + 1}.`;
-                console.error(currentParsingError);
+                factura.date = formattedDate;
+            } catch (dateError: unknown) {
+                parsingRowErrors.value.push({ line: i + 1, message: `Error fecha - ${(dateError instanceof Error) ? dateError.message : 'Inválida'}` });
                 validRow = false;
             }
-
-            if (factura.infancyExpense === undefined) validRow = false;
-            console.log(factura, validRow);
-
-            if (validRow) data.push(factura as Factura);
-
         } else {
-            console.warn(`Fila ${i + 1} ignorada: ${values.length} columnas != ${columns.length}.`);
-            currentParsingError = `Número columnas incorrecto fila ${i + 1}.`;
-            break; // Detener si hay error de estructura
+            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor 'date'.` });
+            validRow = false;
         }
+
+        // Validar campos numéricos requeridos
+        if (factura.expense === undefined) {
+            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor 'expense' (coste).` });
+            validRow = false;
+        }
+        if (factura.infancyExpense === undefined) {
+            parsingRowErrors.value.push({ line: i + 1, message: `Falta valor 'infancyExpense' (gasto proyecto).` });
+            validRow = false;
+        }
+
+        // Si después de todas las validaciones la fila es válida, añadirla
+        if (validRow) {
+            data.push(factura as Factura);
+        } // Si no es válida, ya se añadió el error a parsingRowErrors y simplemente no se añade a data
+
     }
 
-    parsingError.value = currentParsingError; // Asignar error al final
-    return currentParsingError ? [] : data; // Devolver vacío si hubo error
+    // Al final, si hubo errores, asignar un mensaje resumen
+    if (parsingRowErrors.value.length > 0) {
+        parsingError.value = `Se encontraron errores en ${parsingRowErrors.value.length} fila(s) del CSV. Ver detalles abajo.`;
+    }
+
+    // Devolver siempre las filas que sí fueron válidas
+    return data;
 };
 
 // Maneja la selección del archivo CSV
@@ -466,6 +502,7 @@ const handleFileChange = (event: Event) => {
     parsingError.value = null;
     error.value = null;
     results.value = [];
+    parsingRowErrors.value = [];
     invoiceFolderHandle.value = null;
     foundInvoicePdfs.value.clear();
     missingInvoiceNumbers.value = [];
@@ -480,6 +517,7 @@ const handleFileChange = (event: Event) => {
             try {
                 const content = e.target?.result as string;
                 if (!content) throw new Error("No se pudo leer el contenido.");
+                parsingRowErrors.value = [];
                 csvData.value = parseCsv(content);
                 if (csvData.value.length === 0 && !parsingError.value) {
                     parsingError.value = "CSV vacío o sin datos válidos.";
@@ -605,6 +643,13 @@ const selectAndFindInvoicePdfs = async () => {
 const generateDocuments = async () => {
     if (csvData.value.length === 0) {
         error.value = 'Carga un archivo CSV válido primero.';
+        return;
+    }
+
+    // Nueva validación para datos de la asociación
+    if (!formData.associationName || !formData.associationCif || !formData.representativeName || !formData.representativeId) {
+        error.value = 'Completa los datos de la asociación y representante en el formulario.';
+        isGenerating.value = false; // Asegurarse de que el estado de carga se desactive
         return;
     }
 

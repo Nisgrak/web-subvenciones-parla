@@ -1,23 +1,6 @@
-import { PDFDocument, type PDFForm, type PDFTextField, type PDFCheckBox } from 'pdf-lib';
+import { PDFDocument, type PDFForm } from 'pdf-lib';
 // Quitar la importación duplicada de PDFForm y usar las de la línea anterior
-// import type { Factura } from '~/pages/index.vue'; // Mover Factura a un archivo de tipos dedicado
-
-// --- Definir Factura aquí temporalmente o mover a /types/index.ts ---
-// (Asumiendo que no has movido Factura todavía)
-export interface Factura {
-    number: string
-    providerNumber: string
-    date: string
-    activity: string
-    concept: string
-    nif: string
-    income: number | undefined
-    expense: number | undefined
-    total: number | undefined
-    infancyExpense: number | undefined
-    participationExpense: number | undefined
-    parsedDate?: Date;
-}
+import type { Factura } from '~/types'; // Importar desde el nuevo archivo
 
 /**
  * Tipo para representar la plantilla PDF cargada.

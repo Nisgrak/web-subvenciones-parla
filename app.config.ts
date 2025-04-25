@@ -4,7 +4,7 @@ export default defineAppConfig({
     // Estas fechas son inclusivas.
     invoiceDateRange: {
         startDate: '01/10/2023',
-        endDate: '31/09/2024'
+        endDate: '30/09/2024'
     },
     template: {
         maxRows: 13,
