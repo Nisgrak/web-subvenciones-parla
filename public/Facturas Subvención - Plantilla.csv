@@ -1,5 +1,5 @@
-#,Número,Fecha,Actividad,Concepto,Proveedor,Total Factura,Gasto Justificable
-1,2406109,4/01/2024,Curso Premonitores,Fotocopias,B83409177 / SUR 4 COLORES SL,"8,25 €","8,25 €"
-33,YL0101,18/09/2024,Curso Premonitores,Maquina de chapas,76982210155 / SILVER LEE LIMITED,"89,00 €","89,00 €"
-35,405609,22/12/2023,Ocio,Colgantes,B97351839 / SUPER BAZAR FUJIN SL,"15,00 €","15,00 €"
-36,207567,15/12/2020,Local,Copia de llaves,B80161250 / FERRE. ELECTROD. LUIS MARTINEZ SL,"11,60 €","11,60 €"
+﻿#;Número;Fecha;Actividad;Concepto;Proveedor;Total Factura;Gasto Justificable
+1;2406109;4/01/2024;Curso Premonitores;Fotocopias;B83409177 / SUR 4 COLORES SL;"8,25 €";"8,25 €"
+33;YL0101;18/09/2024;Curso Premonitores;Maquina de chapas;76982210155 / SILVER LEE LIMITED;"89,00 €";"89,00 €"
+35;405609;22/12/2023;Ocio;Colgantes;B97351839 / SUPER BAZAR FUJIN SL;"15,00 €";"15,00 €"
+36;207567;15/12/2020;Local;Copia de llaves;B80161250 / FERRE. ELECTROD. LUIS MARTINEZ SL;"11,60 €";"11,60 €"

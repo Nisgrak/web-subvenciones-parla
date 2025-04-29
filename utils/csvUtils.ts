@@ -9,6 +9,7 @@ interface ColumnOptions {
     parse?: (value: string) => number | string | undefined;
     required?: boolean; // Añadir si es requerido para validar
     isDate?: boolean; // Marcar si es el campo de fecha
+    discardEmpty?: boolean; // Si es true, no se guarda el campo si está vacío
 }
 
 /**
@@ -33,7 +34,7 @@ export const csvColumns: ColumnOptions[] = [
     { name: "concept", required: true },
     { name: "nif", required: false },
     { name: "expense", parse: convertFloat, required: true }, // Total factura
-    { name: "grantExpense", parse: convertFloat, required: true } // Gasto justificable
+    { name: "grantExpense", parse: convertFloat, required: false, discardEmpty: true } // Gasto justificable
     // Añadir 'income' y 'total' si se necesitan en el futuro
 ];
 
@@ -74,7 +75,7 @@ export const parseCsvContent = (
     }
 
     // Leer y limpiar los nombres de la cabecera REAL del archivo
-    const headerNames = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const headerNames = lines[0].split(';').map(h => h.trim().replace(/^"|"$/g, ''));
 
     // Validar si el número de columnas en la cabecera coincide con lo esperado
     if (headerNames.length !== csvColumns.length) {
@@ -101,9 +102,9 @@ export const parseCsvContent = (
             }
             if (char === '"' && inQuotes) {
                 if (nextChar === '"') { currentField += '"'; j++; } // Escaped quote
-                else if (line[j + 1] === ',' || j + 1 === line.length) { inQuotes = false; continue; } // End of quoted field
+                else if (line[j + 1] === ';' || j + 1 === line.length) { inQuotes = false; continue; } // Fin de campo entrecomillado, cambiado delimitador a ;
                 else { currentField += char; } // Quote inside field (technically invalid CSV, but try to handle)
-            } else if (char === ',' && !inQuotes) {
+            } else if (char === ';' && !inQuotes) {
                 values.push(currentField.trim()); currentField = '';
             } else {
                 currentField += char;
@@ -132,6 +133,10 @@ export const parseCsvContent = (
             if (column.required && !rawValue) {
                 // Usar headerName en el mensaje
                 errors.push({ line: i + 1, message: `Falta valor requerido en columna '${headerName}'.` });
+                validRow = false; continue;
+            }
+            if (column.discardEmpty && !rawValue) {
+                errors.push({ line: i + 1, message: `Campo '${headerName}' vacío, se ha descartado.` });
                 validRow = false; continue;
             }
 
@@ -184,7 +189,7 @@ export const parseCsvContent = (
                 if (invoiceTimestamp < startDateTimestamp || invoiceTimestamp > endDateTimestamp) {
                     throw new Error(`Fuera rango (${configStartDateString} - ${configEndDateString}).`);
                 }
-                factura.date = formattedDate; // Guardar la fecha formateada si es válida
+                factura.date = formattedDate;
             } catch (dateError: unknown) {
                 const dateHeaderName = headerNames[csvColumns.findIndex(c => c.isDate)] || 'date';
                 errors.push({ line: i + 1, message: `Error en columna '${dateHeaderName}' (valor: '${rawDateValue}') - ${(dateError instanceof Error) ? dateError.message : 'Inválida'}` });
@@ -200,12 +205,7 @@ export const parseCsvContent = (
         if (validRow) {
             // Asegurarse que todos los campos requeridos estén presentes (aunque ya se validó)
             const completeFactura = factura as Factura;
-            // Comprobación final por si acaso (opcional)
-            // if (csvColumns.some(c => c.required && completeFactura[c.name] === undefined)) {
-            //     errors.push({ line: i + 1, message: `Error interno: Faltan datos requeridos después de validación.` });
-            // } else {
             data.push(completeFactura);
-            // }
         }
     }
 
@@ -214,4 +214,4 @@ export const parseCsvContent = (
     }
 
     return { data, errors, generalError };
-}; 
+}
