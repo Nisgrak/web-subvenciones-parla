@@ -181,7 +181,11 @@ export const parseCsvContent = (
                     const parts = formattedDate.split('/');
                     formattedDate = `${parts[0]}/0${parts[1]}/${parts[2]}`;
                 }
-
+                // Estandarizar año a 4 dígitos (siempre 20XX)
+                const parts = formattedDate.split('/');
+                if (parts[2].length === 2) {
+                    formattedDate = `${parts[0]}/${parts[1]}/20${parts[2]}`;
+                }
                 const invoiceDate = parse(formattedDate, 'dd/MM/yyyy', new Date());
                 if (!isValid(invoiceDate)) throw new Error(`Formato inválido.`);
 
