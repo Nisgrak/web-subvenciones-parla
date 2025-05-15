@@ -1,5 +1,5 @@
 <template>
-    <UContainer class="py-8">
+    <UContainer class="py-8 lg:max-w-[90vw]">
         <!-- Encabezado -->
         <header class="mb-12 text-center">
             <h1 class="text-4xl font-bold mb-2">Generador de Anexo III subvenciones Parla 2025</h1>
