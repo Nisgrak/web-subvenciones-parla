@@ -111,13 +111,17 @@ variant="outline" icon="i-heroicons-document-arrow-down"
                                 :disabled="isGenerating || isProcessingFolder" />
                             <!-- Info Archivo Cargado -->
                             <div class="text-sm flex-grow">
-                                <span v-if="!csvFile" class="text-gray-500 dark:text-gray-400">(No hay archivo
-                                    cargado)</span>
-                                <span v-else class="text-green-600 dark:text-green-400 truncate" :title="csvFile.name">
-                                    <UIcon name="i-heroicons-check-circle" class="mr-1" /> {{ csvFile.name }} ({{
-                                        csvData.length }}
-                                    filas válidas)
-                                </span>
+                                <div v-if="!csvFile" class="text-gray-500 dark:text-gray-400">(No hay archivo
+                                    cargado)</div>
+                                <div v-else class="text-green-600 dark:text-green-400 flex items-center" :title="csvFile.name">
+                                    <UIcon name="i-heroicons-check-circle" class="mr-1 min-w-5" />
+                                    <div class="">
+
+                                        {{ csvFile.name }} ({{
+                                            csvData.length }}
+                                        filas válidas)
+                                    </div>
+                                </div>
                                 <div
 v-if="parsingError && parsingRowErrors.length === 0" class="text-red-500 mt-1"
                                     :title="parsingError">
