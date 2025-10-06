@@ -15,41 +15,41 @@
             <ol class="list-decimal list-inside space-y-4">
                 <li>
                     <UIcon name="i-heroicons-document-arrow-down" class="mr-2 align-middle" />
-                    <strong>Descarga la Plantilla CSV:</strong> Usa el botón abajo para obtener el formato correcto.
+                    <strong>Descarga la plantilla:</strong> Usa el botón abajo para obtener la plantilla a rellenar.
                 </li>
                 <li>
                     <UIcon name="i-heroicons-table-cells" class="mr-2 align-middle" />
-                    <strong>Rellena tus Datos:</strong> Completa la plantilla CSV con la información requerida (fechas,
+                    <strong>Rellena tus datos:</strong> Completa la plantilla con la información requerida (fechas,
                     importes, etc.).
                 </li>
                 <li>
                     <UIcon name="i-heroicons-arrow-up-tray" class="mr-2 align-middle" />
-                    <strong>Sube el Archivo CSV:</strong> Carga el archivo CSV completado en el formulario.
+                    <strong>Sube el archivo relleno:</strong> Carga el archivo completado en el formulario.
                 </li>
                 <li>
                     <UIcon name="i-heroicons-folder-arrow-down" class="mr-2 align-middle" />
-                    <strong>(Opcional) Selecciona Carpeta de Facturas:</strong> Si deseas adjuntar los PDF de las
+                    <strong>(Opcional) Selecciona carpeta de facturas:</strong> Si deseas adjuntar los PDF de las
                     facturas, selecciona la carpeta que los contiene.
                     <ul class="list-disc list-inside pl-6 text-sm text-gray-600 dark:text-gray-400 mt-1">
                         <li>Los archivos PDF deben llamarse <code>facturaNNN.pdf</code> (ej.
                             <code>factura001.pdf</code>, <code>factura042.pdf</code>).
                         </li>
-                        <li>El número <code>NNN</code> debe coincidir con la columna 'number' del CSV (ej. '1' o '42').
+                        <li>El número <code>NNN</code> debe coincidir con la columna "#" del archivo (ej. '1' o '42').
                         </li>
                     </ul>
                 </li>
                 <li>
                     <UIcon name="i-heroicons-information-circle" class="mr-2 align-middle" />
-                    <strong>Introduce Datos Asociación:</strong> Rellena el nombre, CIF y datos del representante.
+                    <strong>Introduce datos de la asociación:</strong> Rellena el nombre, CIF y datos del representante.
                 </li>
                 <li>
                     <UIcon name="i-heroicons-cog-6-tooth" class="mr-2 align-middle" />
-                    <strong>Genera los Documentos:</strong> Haz clic en "Generar Documentos". Se creará el Anexo III y,
+                    <strong>Genera los documentos:</strong> Haz clic en "Generar documentos". Se creará el Anexo III y,
                     si seleccionaste una carpeta, un PDF adicional con las facturas adjuntas.
                 </li>
                 <li>
                     <UIcon name="i-heroicons-arrow-down-tray" class="mr-2 align-middle" />
-                    <strong>Descarga tus Documentos:</strong> Una vez generados, podrás descargar los PDFs
+                    <strong>Descarga tus documentos:</strong> Una vez generados, podrás descargar los PDFs
                     resultantes.
                 </li>
             </ol>
@@ -62,23 +62,27 @@
             <!-- Datos Asociación -->
             <UCard class="mb-6">
                 <template #header>
-                    <h3 class="text-lg font-medium">Datos de la Asociación y Representante (Obligatorio)</h3>
+                    <h3 class="text-lg font-medium">Datos de la asociación y representante (Obligatorio)</h3>
                 </template>
                 <!-- Usamos formData directamente, ya que es reactivo -->
                 <UForm :state="formData" class="space-y-4 space-x-4 flex flex-row flex-wrap">
-                    <UFormField label="Nombre de la Asociación" name="associationName" required
+                    <UFormField
+label="Nombre de la Asociación" name="associationName" required
                         class="flex-1 min-w-[250px]">
                         <UInput v-model="formData.associationName" placeholder="Asociación Ejemplo XYZ" />
                     </UFormField>
-                    <UFormField label="CIF de la Asociación" name="associationCif" required
+                    <UFormField
+label="CIF de la Asociación" name="associationCif" required
                         class="flex-1 min-w-[150px]">
                         <UInput v-model="formData.associationCif" placeholder="G12345678" />
                     </UFormField>
-                    <UFormField label="Nombre del Representante" name="representativeName" required
+                    <UFormField
+label="Nombre del representante" name="representativeName" required
                         class="flex-1 min-w-[250px]">
                         <UInput v-model="formData.representativeName" placeholder="Juan Pérez García" />
                     </UFormField>
-                    <UFormField label="CIF/DNI del Representante" name="representativeId" required
+                    <UFormField
+label="CIF/DNI del representante" name="representativeId" required
                         class="flex-1 min-w-[150px]">
                         <UInput v-model="formData.representativeId" placeholder="12345678A" />
                     </UFormField>
@@ -88,20 +92,22 @@
             <!-- Carga de Datos: CSV y Carpeta Opcional -->
             <UCard>
                 <template #header>
-                    <h3 class="text-lg font-medium">Origen de Datos para Generación</h3>
+                    <h3 class="text-lg font-medium">Origen de datos para generación</h3>
                 </template>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                     <!-- Columna 1: Carga CSV Obligatoria -->
                     <div class="border p-4 rounded-md flex flex-col">
-                        <h4 class="font-semibold mb-3">1. Cargar Archivo CSV (Obligatorio)</h4>
-                        <UFormField label="Archivo CSV (.csv)" name="csvFile" required>
-                            <UInput type="file" size="lg" accept=".csv, text/csv"
+                        <h4 class="font-semibold mb-3">1. Cargar archivo (Obligatorio)</h4>
+                        <UFormField label="Archivo de facturas (.csv)" name="csvFile" required>
+                            <UInput
+type="file" size="lg" accept=".csv, text/csv"
                                 :disabled="isGenerating || isProcessingFolder" @change="handleFileChange" />
                         </UFormField>
                         <div class="flex items-center space-x-4 mt-2 mb-4">
-                            <UButton variant="outline" icon="i-heroicons-document-arrow-down"
-                                label="Descargar Plantilla CSV" href="/Facturas Subvención - Plantilla.csv" external
+                            <UButton
+variant="outline" icon="i-heroicons-document-arrow-down"
+                                label="Descargar plantilla" href="/Facturas Subvención - Plantilla.csv" external
                                 :disabled="isGenerating || isProcessingFolder" />
                             <!-- Info Archivo Cargado -->
                             <div class="text-sm flex-grow">
@@ -112,7 +118,8 @@
                                         csvData.length }}
                                     filas válidas)
                                 </span>
-                                <div v-if="parsingError && parsingRowErrors.length === 0" class="text-red-500 mt-1"
+                                <div
+v-if="parsingError && parsingRowErrors.length === 0" class="text-red-500 mt-1"
                                     :title="parsingError">
                                     Error General: {{ parsingError }}
                                 </div>
@@ -121,11 +128,12 @@
 
                         <!-- Tabla de Errores de Parseo CSV -->
                         <div v-if="parsingRowErrors.length > 0" class="mt-4 overflow-auto flex-grow">
-                            <h5 class="text-red-600 dark:text-red-400 font-semibold mb-2">Errores encontrados en el CSV
+                            <h5 class="text-red-600 dark:text-red-400 font-semibold mb-2">Errores encontrados en el archivo
                                 ({{
                                     parsingRowErrors.length }}):</h5>
-                            <UTable :data="parsingRowErrors" :columns="[
-                                { accessorKey: 'line', header: 'Línea CSV' },
+                            <UTable
+:data="parsingRowErrors" :columns="[
+                                { accessorKey: 'line', header: 'Línea del archivo' },
                                 { accessorKey: 'message', header: 'Error' }
                             ]" />
                         </div>
@@ -133,27 +141,19 @@
 
                     <!-- Columna 2: Selección Carpeta Opcional -->
                     <div class="border p-4 rounded-md">
-                        <h4 class="font-semibold mb-3">2. (Opcional) Adjuntar Facturas PDF</h4>
-                        <UTooltip class="w-full">
-                            <template #text>
-                                <div class="max-w-xs text-wrap">
-                                    Selecciona la carpeta que contiene los archivos PDF de las facturas listadas en el
-                                    CSV.<br>
-                                    Los archivos deben nombrarse <code>facturaNNN.pdf</code> (ej:
-                                    <code>factura001.pdf</code>, <code>factura015.pdf</code>).<br>
-                                    El número <code>NNN</code> se obtiene de la columna 'number' del CSV.
-                                </div>
-                            </template>
-                            <UButton class="w-full" icon="i-heroicons-folder-arrow-down"
+                        <h4 class="font-semibold mb-3">2. (Opcional) Adjuntar facturas PDF</h4>
+                        
+                            <UButton
+class="w-full" icon="i-heroicons-folder-arrow-down"
                                 label="Seleccionar Carpeta de Facturas"
                                 :disabled="csvData.length === 0 || isGenerating || isProcessingFolder"
                                 :loading="isProcessingFolder" @click="selectAndFindInvoicePdfs" />
-                        </UTooltip>
+               
 
                         <!-- Feedback Selección Carpeta -->
                         <div class="mt-3 text-sm space-y-1">
                             <div v-if="searchError" class="text-red-500">
-                                Error Carpeta: {{ searchError }}
+                                Error carpeta: {{ searchError }}
                             </div>
                             <div v-if="invoiceFolderHandle">
                                 <UIcon name="i-heroicons-check-circle" class="text-green-500 mr-1" />
@@ -165,11 +165,10 @@
                             <div v-else-if="!searchError" class="text-gray-500 dark:text-gray-400">
                                 (No se ha seleccionado carpeta)
                             </div>
-                            <div v-if="missingInvoiceNumbers.length > 0 && !isProcessingFolder && !searchError"
+                            <div
+v-if="missingInvoiceNumbers.length > 0 && !isProcessingFolder && !searchError"
                                 class="text-amber-600 dark:text-amber-400">
-                                <span class="font-medium">Facturas del CSV no encontradas en carpeta (formato incorrecto
-                                    o
-                                    ausentes):</span> {{ missingInvoiceNumbers.join(', ') }}
+                                <span class="font-medium">Facturas del archivo no encontradas en carpeta (formato incorrecto o ausentes):</span> {{ missingInvoiceNumbers.join(', ') }}
                             </div>
                         </div>
                     </div>
@@ -177,11 +176,12 @@
 
                 <!-- Botón Principal de Generación -->
                 <div class="text-center mt-6 pt-4 border-t">
-                    <UButton size="xl" color="primary" icon="i-heroicons-cog-6-tooth" label="Generar Documentos"
+                    <UButton
+size="xl" color="primary" icon="i-heroicons-cog-6-tooth" label="Generar Documentos"
                         :loading="isGenerating" :disabled="!isReadyToGenerate || isGenerating"
                         @click="generateDocuments" />
                     <p v-if="!isReadyToGenerate && !isGenerating" class="text-xs text-gray-500 mt-1">
-                        (Necesitas cargar un CSV válido y rellenar los datos de la asociación)
+                        (Necesitas cargar un archivo válido y rellenar los datos de la asociación)
                     </p>
                 </div>
             </UCard>
@@ -198,7 +198,7 @@
                         <UProgress :value="anexoGenerationProgress" indicator size="sm" />
                     </div>
                     <div v-if="isMergingPdfs">
-                        <p class="mb-1">Generando PDF de Facturas Adjuntas... ({{ pdfMergeProgress }}%)</p>
+                        <p class="mb-1">Generando PDF de facturas adjuntas... ({{ pdfMergeProgress }}%)</p>
                         <UProgress :value="pdfMergeProgress" indicator size="sm" />
                     </div>
                 </div>
@@ -213,7 +213,8 @@
                             <p class="text-green-600 dark:text-green-400 mb-4">¡Anexo III generado con éxito!</p>
                             <ul class="space-y-2 text-left max-w-md mx-auto mb-4">
                                 <li v-for="(result, index) in anexoResults" :key="`anexo-${index}`">
-                                    <a :href="result.url" :download="result.name" :title="`Descargar ${result.name}`"
+                                    <a
+:href="result.url" :download="result.name" :title="`Descargar ${result.name}`"
                                         class="text-primary hover:underline flex items-center">
                                         <UIcon name="i-heroicons-document-arrow-down" class="mr-2 flex-shrink-0" />
                                         <span class="truncate">{{ result.name }}</span>
@@ -232,12 +233,13 @@
 
                     <!-- Resultados Facturas Fusionadas -->
                     <div class="border rounded-md p-4">
-                        <h3 class="text-lg font-medium mb-2">Facturas Adjuntas (PDF Único)</h3>
+                        <h3 class="text-lg font-medium mb-2">Facturas adjuntas (PDF Único)</h3>
                         <div v-if="mergedPdfUrl">
                             <p class="text-green-600 dark:text-green-400 mb-4">¡PDF de facturas adjuntas generado con
                                 éxito!</p>
                             <div class="max-w-md mx-auto mb-4">
-                                <a :href="mergedPdfUrl" download="Facturas_Adjuntas.pdf"
+                                <a
+:href="mergedPdfUrl" download="Facturas_Adjuntas.pdf"
                                     title="Descargar PDF de Facturas Adjuntas"
                                     class="text-primary hover:underline flex items-center justify-center">
                                     <UIcon name="i-heroicons-document-arrow-down" class="mr-2 flex-shrink-0" />
@@ -245,21 +247,22 @@
                                 </a>
                             </div>
                             <p v-if="pdfMergeError" class="text-amber-600 dark:text-amber-400 text-xs mt-2">Nota:
-                                Algunas
-                                facturas pudieron dar error durante la fusión. {{ pdfMergeError }}</p>
+                                Algunas facturas pudieron dar error durante la fusión. {{ pdfMergeError }}</p>
                         </div>
                         <div v-else-if="pdfMergeError && !mergedPdfUrl">
-                            <p class="text-red-600 dark:text-red-400 font-medium">Error al generar PDF de Facturas:</p>
+                            <p class="text-red-600 dark:text-red-400 font-medium">Error al generar PDF de facturas:</p>
                             <p class="text-red-600 dark:text-red-400 text-sm">{{ pdfMergeError }}</p>
                         </div>
                         <div v-else-if="!invoiceFolderHandle" class="text-gray-500 dark:text-gray-400">
                             (No se seleccionó carpeta para adjuntar facturas)
                         </div>
-                        <div v-else-if="foundInvoicePdfs.size === 0 && !searchError"
+                        <div
+v-else-if="foundInvoicePdfs.size === 0 && !searchError"
                             class="text-amber-600 dark:text-amber-400">
                             (No se encontraron facturas válidas en la carpeta seleccionada)
                         </div>
-                        <div v-else-if="invoiceFolderHandle && foundInvoicePdfs.size > 0 && !isGenerating && !mergedPdfUrl && !pdfMergeError"
+                        <div
+v-else-if="invoiceFolderHandle && foundInvoicePdfs.size > 0 && !isGenerating && !mergedPdfUrl && !pdfMergeError"
                             class="text-gray-500 dark:text-gray-400">
                             (Facturas encontradas, pendiente de generar PDF adjunto)
                         </div>
@@ -267,9 +270,10 @@
                 </div>
 
                 <!-- Mensaje si no hay acciones realizadas -->
-                <div v-if="!isGenerating && anexoResults.length === 0 && !mergedPdfUrl && !anexoError && !pdfMergeError && !parsingError"
+                <div
+v-if="!isGenerating && anexoResults.length === 0 && !mergedPdfUrl && !anexoError && !pdfMergeError && !parsingError"
                     class="text-center text-gray-500 dark:text-gray-400 py-4">
-                    Carga un archivo CSV y haz clic en "Generar Documentos" para ver los resultados aquí.
+                    Carga un archivo y haz clic en "Generar documentos" para ver los resultados aquí.
                 </div>
 
             </UCard>
