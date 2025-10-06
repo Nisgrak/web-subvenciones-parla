@@ -13,6 +13,43 @@ interface ColumnOptions {
 }
 
 /**
+ * Detecta el separador más probable del CSV analizando la primera línea.
+ * Prueba con los separadores más comunes y verifica que produzcan el número correcto de columnas.
+ * 
+ * @param csvString Contenido del archivo CSV.
+ * @param expectedColumnCount Número de columnas esperadas.
+ * @returns El separador detectado.
+ */
+export function detectCsvSeparator(csvString: string, expectedColumnCount: number): string {
+    const lines = csvString.trim().split('\n');
+    if (lines.length === 0) return ';'; // Default fallback
+
+    const firstLine = lines[0];
+    const possibleSeparators = [';', ',', '\t', '|'];
+
+    // Buscar el separador que produzca exactamente el número correcto de columnas
+    for (const sep of possibleSeparators) {
+        const columns = firstLine.split(sep);
+        if (columns.length === expectedColumnCount) {
+            return sep;
+        }
+    }
+
+    // Si ninguno coincide exactamente, usar el que más se acerque
+    const counts = possibleSeparators.map(sep => ({
+        separator: sep,
+        count: firstLine.split(sep).length
+    }));
+
+    // Ordenar por diferencia mínima con el número esperado
+    counts.sort((a, b) =>
+        Math.abs(a.count - expectedColumnCount) - Math.abs(b.count - expectedColumnCount)
+    );
+
+    return counts[0].separator;
+}
+
+/**
  * Convierte un string (potencialmente con símbolo € y coma decimal) a número.
  */
 export function convertFloat(input: string): number | undefined {
@@ -74,8 +111,11 @@ export const parseCsvContent = (
         return { data, errors, generalError: "El archivo CSV está vacío o solo contiene la cabecera." };
     }
 
+    // Detectar el separador del CSV basándonos en el número esperado de columnas
+    const separator = detectCsvSeparator(csvString, csvColumns.length);
+
     // Leer y limpiar los nombres de la cabecera REAL del archivo
-    const headerNames = lines[0].split(';').map(h => h.trim().replace(/^"|"$/g, ''));
+    const headerNames = lines[0].split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
 
     // Validar si el número de columnas en la cabecera coincide con lo esperado
     if (headerNames.length !== csvColumns.length) {
@@ -102,9 +142,9 @@ export const parseCsvContent = (
             }
             if (char === '"' && inQuotes) {
                 if (nextChar === '"') { currentField += '"'; j++; } // Escaped quote
-                else if (line[j + 1] === ';' || j + 1 === line.length) { inQuotes = false; continue; } // Fin de campo entrecomillado, cambiado delimitador a ;
+                else if (line[j + 1] === separator || j + 1 === line.length) { inQuotes = false; continue; } // Fin de campo entrecomillado
                 else { currentField += char; } // Quote inside field (technically invalid CSV, but try to handle)
-            } else if (char === ';' && !inQuotes) {
+            } else if (char === separator && !inQuotes) {
                 values.push(currentField.trim()); currentField = '';
             } else {
                 currentField += char;
