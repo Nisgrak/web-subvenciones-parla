@@ -2,6 +2,32 @@ import type { Factura } from '~/types';
 import { parse, getTime, isValid } from 'date-fns';
 
 /**
+ * Limpia el texto de caracteres problemáticos incluyendo:
+ * - Caracteres de control Unicode (U+0000 a U+001F, U+007F a U+009F)
+ * - Zero-width characters (U+200B a U+200F)
+ * - Direccionales Unicode (LTR, RTL marks, etc.) (U+202A a U+202E)
+ * - Otros caracteres invisibles problemáticos
+ * - BOM (Byte Order Mark)
+ * @param text El texto a limpiar
+ * @returns El texto limpiado
+ */
+export function cleanText(text: string): string {
+    if (!text) return text;
+
+    // Eliminar caracteres de control Unicode y otros caracteres problemáticos:
+    // \u0000-\u001F: Caracteres de control C0 (incluye tabs, newlines, etc.)
+    // \u007F-\u009F: Caracteres de control C1 y DEL
+    // \u200B-\u200F: Zero-width spaces, joiners, LTR/RTL marks
+    // \u202A-\u202E: Embedding y override direccionales (LRE, RLE, PDF, LRO, RLO)
+    // \u2060-\u206F: Word joiner, invisible operators, etc.
+    // \uFEFF: BOM (Byte Order Mark)
+    // eslint-disable-next-line no-control-regex
+    const cleaned = text.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
+
+    return cleaned.trim();
+}
+
+/**
  * Opciones para definir cómo parsear cada columna del CSV.
  */
 interface ColumnOptions {
@@ -165,7 +191,7 @@ export const parseCsvContent = (
 
         for (let k = 0; k < csvColumns.length; k++) {
             const column = csvColumns[k];
-            const rawValue = values[k];
+            const rawValue = cleanText(values[k]); // Limpiar caracteres problemáticos
             // Obtener el nombre de la cabecera para usar en errores
             const headerName = headerNames[k] || column.name; // Usar nombre interno como fallback
 
