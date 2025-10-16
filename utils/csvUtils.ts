@@ -77,11 +77,21 @@ export function detectCsvSeparator(csvString: string, expectedColumnCount: numbe
 
 /**
  * Convierte un string (potencialmente con símbolo € y coma decimal) a número.
+ * Maneja el formato español donde el punto es separador de miles y la coma es separador decimal.
+ * Ejemplo: "1.958,08 €" -> 1958.08
  */
 export function convertFloat(input: string): number | undefined {
-    const cleanedInput = input.replace(/\s*€/g, "").replace(/,/g, ".");
-    // Devolver undefined si está vacío después de limpiar, para que no se guarde NaN
-    if (cleanedInput.trim() === "") return undefined;
+    // 1. Eliminar el símbolo € y espacios
+    let cleanedInput = input.replace(/\s*€/g, "").trim();
+    // Devolver undefined si está vacío después de limpiar
+    if (cleanedInput === "") return undefined;
+
+    // 2. Eliminar los puntos (separadores de miles en formato español)
+    cleanedInput = cleanedInput.replace(/\./g, "");
+
+    // 3. Reemplazar la coma (separador decimal español) por punto (formato JS)
+    cleanedInput = cleanedInput.replace(/,/g, ".");
+
     const result = parseFloat(cleanedInput);
     return isNaN(result) ? undefined : result; // Devolver undefined si no es un número válido
 }
