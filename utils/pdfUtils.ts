@@ -183,7 +183,7 @@ export const savePdfToBlobUrl = async (pdfDoc: PDFDocument, filename: string): P
         // NO APLANAR AQUÍ - Se hará en el documento final antes de llamar a esta función
         // pdfDoc.getForm().flatten();
         const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         return url;
     } catch (error) {
