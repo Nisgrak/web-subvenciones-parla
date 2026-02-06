@@ -96,9 +96,9 @@ export const fillInvoiceRow = (
         fillTextField(fieldsConfig.proyect(index), invoice.activity);
         fillTextField(fieldsConfig.concept(index), invoice.concept);
         fillTextField(fieldsConfig.num(index), invoice.providerNumber);
-        fillTextField(fieldsConfig.nif(index), invoice.nif);
+        fillTextField(fieldsConfig.nif(index), invoice.providerNumber);
         fillTextField(fieldsConfig.date(index), invoice.date);
-        fillTextField(fieldsConfig.datePay(index), invoice.date); // Usando invoice.date ya que datePay no existe en Factura
+        fillTextField(fieldsConfig.datePay(index), invoice.datePay ?? invoice.date); // Usar datePay si existe, sino la fecha de factura
         fillTextField(fieldsConfig.cost(index), invoice.expense?.toFixed(2)); // Formatear a 2 decimales
         fillTextField(fieldsConfig.justify(index), projectExpense.toFixed(2)); // Formatear a 2 decimales
 

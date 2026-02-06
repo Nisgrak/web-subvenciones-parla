@@ -32,6 +32,7 @@ export function cleanText(text: string): string {
  */
 interface ColumnOptions {
     name: keyof Factura;
+    headerName: string; // Nombre exacto de la cabecera en el archivo CSV
     parse?: (value: string) => number | string | undefined;
     required?: boolean; // Añadir si es requerido para validar
     isDate?: boolean; // Marcar si es el campo de fecha
@@ -40,36 +41,37 @@ interface ColumnOptions {
 
 /**
  * Detecta el separador más probable del CSV analizando la primera línea.
- * Prueba con los separadores más comunes y verifica que produzcan el número correcto de columnas.
+ * Prueba con los separadores más comunes y verifica que produzcan al menos
+ * el número mínimo de columnas requerido (puede haber columnas extra).
  * 
  * @param csvString Contenido del archivo CSV.
- * @param expectedColumnCount Número de columnas esperadas.
+ * @param minColumnCount Número mínimo de columnas requeridas.
  * @returns El separador detectado.
  */
-export function detectCsvSeparator(csvString: string, expectedColumnCount: number): string {
+export function detectCsvSeparator(csvString: string, minColumnCount: number): string {
     const lines = csvString.trim().split('\n');
     if (lines.length === 0) return ';'; // Default fallback
 
     const firstLine = lines[0];
     const possibleSeparators = [';', ',', '\t', '|'];
 
-    // Buscar el separador que produzca exactamente el número correcto de columnas
+    // Buscar el separador que produzca al menos el número mínimo de columnas
     for (const sep of possibleSeparators) {
         const columns = firstLine.split(sep);
-        if (columns.length === expectedColumnCount) {
+        if (columns.length >= minColumnCount) {
             return sep;
         }
     }
 
-    // Si ninguno coincide exactamente, usar el que más se acerque
+    // Si ninguno tiene el mínimo, usar el que más se acerque
     const counts = possibleSeparators.map(sep => ({
         separator: sep,
         count: firstLine.split(sep).length
     }));
 
-    // Ordenar por diferencia mínima con el número esperado
+    // Ordenar por diferencia mínima con el número mínimo esperado
     counts.sort((a, b) =>
-        Math.abs(a.count - expectedColumnCount) - Math.abs(b.count - expectedColumnCount)
+        Math.abs(a.count - minColumnCount) - Math.abs(b.count - minColumnCount)
     );
 
     return counts[0].separator;
@@ -100,14 +102,14 @@ export function convertFloat(input: string): number | undefined {
  * Definición de las columnas esperadas en el archivo CSV.
  */
 export const csvColumns: ColumnOptions[] = [
-    { name: "number", required: true },
-    { name: "providerNumber", required: true },
-    { name: "date", required: true, isDate: true },
-    { name: "activity", required: true },
-    { name: "concept", required: true },
-    { name: "nif", required: false },
-    { name: "expense", parse: convertFloat, required: true }, // Total factura
-    { name: "grantExpense", parse: convertFloat, required: false, discardEmpty: true } // Gasto justificable
+    { name: "number", headerName: "#", required: true },
+    { name: "providerNumber", headerName: "Proveedor", required: false },
+    { name: "date", headerName: "Fecha", required: true, isDate: true },
+    { name: "datePay", headerName: "Fecha de pago", required: false, isDate: true },
+    { name: "activity", headerName: "Actividad", required: true },
+    { name: "concept", headerName: "Concepto", required: true },
+    { name: "expense", headerName: "Total Factura", parse: convertFloat, required: true }, // Total factura
+    { name: "grantExpense", headerName: "Gasto Justificable", parse: convertFloat, required: false, discardEmpty: true } // Gasto justificable
     // Añadir 'income' y 'total' si se necesitan en el futuro
 ];
 
@@ -147,17 +149,34 @@ export const parseCsvContent = (
         return { data, errors, generalError: "El archivo CSV está vacío o solo contiene la cabecera." };
     }
 
-    // Detectar el separador del CSV basándonos en el número esperado de columnas
+    // Detectar el separador del CSV basándonos en el número mínimo de columnas requeridas
     const separator = detectCsvSeparator(csvString, csvColumns.length);
 
     // Leer y limpiar los nombres de la cabecera REAL del archivo
     const headerNames = lines[0].split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
 
-    // Validar si el número de columnas en la cabecera coincide con lo esperado
-    if (headerNames.length !== csvColumns.length) {
+    // Crear mapa de cabeceras para búsqueda rápida (case-insensitive)
+    const headerMap = new Map<string, number>();
+    headerNames.forEach((name, index) => {
+        headerMap.set(name.toLowerCase(), index);
+    });
+
+    // Crear mapeo de columnas CSV a índices en el archivo
+    const columnIndexMap: Record<keyof Factura, number | undefined> = {} as Record<keyof Factura, number | undefined>;
+    csvColumns.forEach(col => {
+        const idx = headerMap.get(col.headerName.toLowerCase());
+        columnIndexMap[col.name] = idx;
+    });
+
+    // Validar que todas las cabeceras requeridas estén presentes
+    const missingHeaders = csvColumns
+        .filter(col => col.required && columnIndexMap[col.name] === undefined)
+        .map(col => col.headerName);
+
+    if (missingHeaders.length > 0) {
         return {
             data,
-            errors: [{ line: 1, message: `Número de columnas en cabecera (${headerNames.length}) no coincide con lo esperado (${csvColumns.length}).` }],
+            errors: [{ line: 1, message: `Faltan cabeceras requeridas: ${missingHeaders.join(', ')}` }],
             generalError: "La estructura del CSV no coincide con la plantilla."
         };
     }
@@ -188,22 +207,30 @@ export const parseCsvContent = (
         }
         values.push(currentField.trim());
 
-        if (values.length !== csvColumns.length) {
-            // Usar los nombres de cabecera en el mensaje si están disponibles
-            const expectedCols = headerNames.join(', ');
-            errors.push({ line: i + 1, message: `Número columnas incorrecto (${values.length} encontrado, ${csvColumns.length} esperado: ${expectedCols}).` });
+        // Verificar que hay suficientes columnas en la fila (puede haber más, pero no menos)
+        const requiredColIndices = Object.values(columnIndexMap).filter(idx => idx !== undefined) as number[];
+        const maxRequiredIndex = Math.max(...requiredColIndices, -1);
+
+        if (maxRequiredIndex >= values.length) {
+            errors.push({ line: i + 1, message: `Número de columnas insuficiente (${values.length} encontrado, se requieren al menos ${maxRequiredIndex + 1} columnas).` });
             continue;
         }
 
+
         const factura: Partial<Factura> = {};
         let validRow = true;
-        let rawDateValue = '';
+        const rawDateValues: Record<string, string> = {}; // Guardar todas las fechas para validación posterior
 
-        for (let k = 0; k < csvColumns.length; k++) {
-            const column = csvColumns[k];
-            const rawValue = cleanText(values[k]); // Limpiar caracteres problemáticos
-            // Obtener el nombre de la cabecera para usar en errores
-            const headerName = headerNames[k] || column.name; // Usar nombre interno como fallback
+        for (const column of csvColumns) {
+            const csvIndex = columnIndexMap[column.name];
+
+            // Saltar columnas que no están presentes en el CSV
+            if (csvIndex === undefined) {
+                continue;
+            }
+
+            const rawValue = cleanText(values[csvIndex]); // Limpiar caracteres problemáticos
+            const headerName = column.headerName; // Usar el nombre de cabecera definido
 
             // Validar campos requeridos usando el nombre de la cabecera
             if (column.required && !rawValue) {
@@ -216,7 +243,10 @@ export const parseCsvContent = (
                 validRow = false; continue;
             }
 
-            if (column.isDate) rawDateValue = rawValue;
+            // Guardar valores de fechas para validación posterior
+            if (column.isDate && rawValue) {
+                rawDateValues[column.name] = rawValue;
+            }
 
             try {
                 const parsedValue = column.parse ? column.parse(rawValue) : rawValue;
@@ -243,11 +273,11 @@ export const parseCsvContent = (
             }
         }
 
-        // Si hubo errores de parseo o tipo en las columnas, saltar validación de fecha y final
+        // Si hubo errores de parseo o tipo en las columnas, saltar validación de fechas y final
         if (!validRow) continue;
 
-        // Validar fecha (solo si la fila era válida hasta ahora)
-        if (rawDateValue) {
+        // Validar fechas (todas las que estén presentes)
+        for (const [fieldName, rawDateValue] of Object.entries(rawDateValues)) {
             try {
                 let formattedDate = rawDateValue;
                 // Añadir cero inicial si falta para días < 10
@@ -269,22 +299,36 @@ export const parseCsvContent = (
                 }
 
                 const invoiceDate = parse(formattedDate, 'dd/MM/yyyy', new Date());
-                if (!isValid(invoiceDate)) throw new Error(`Formato inválido. El formato debe ser DD/MM/YYYY`);
+                if (!isValid(invoiceDate)) throw new Error(`Fecha inválida. La fecha ${formattedDate} no existe.`);
 
                 const invoiceTimestamp = getTime(invoiceDate);
                 if (invoiceTimestamp < startDateTimestamp || invoiceTimestamp > endDateTimestamp) {
                     throw new Error(`Fuera rango (${configStartDateString} - ${configEndDateString}).`);
                 }
-                factura.date = formattedDate;
+
+                const facturaKey = fieldName as keyof Factura;
+                factura[facturaKey] = formattedDate as any;
             } catch (dateError: unknown) {
-                const dateHeaderName = headerNames[csvColumns.findIndex(c => c.isDate)] || 'date';
+                const dateColumn = csvColumns.find(c => c.name === fieldName);
+                const dateHeaderName = dateColumn?.headerName || fieldName;
                 errors.push({ line: i + 1, message: `Error en columna '${dateHeaderName}' (valor: '${rawDateValue}') - ${(dateError instanceof Error) ? dateError.message : 'Inválida'}` });
                 validRow = false;
+                break;
             }
-        } else if (csvColumns.find(c => c.isDate)?.required) {
-            const dateHeaderName = headerNames[csvColumns.findIndex(c => c.isDate)] || 'date';
-            errors.push({ line: i + 1, message: `Falta valor requerido en columna '${dateHeaderName}'.` });
-            validRow = false;
+        }
+
+        // Verificar que las fechas requeridas estén presentes
+        for (const column of csvColumns) {
+            if (column.isDate && column.required && !rawDateValues[column.name]) {
+                errors.push({ line: i + 1, message: `Falta valor requerido en columna '${column.headerName}'.` });
+                validRow = false;
+                break;
+            }
+        }
+
+        // Si datePay viene vacío pero date tiene valor, usar la fecha de factura
+        if (!factura.datePay && factura.date) {
+            factura.datePay = factura.date;
         }
 
         // Añadir factura si pasó todas las validaciones
