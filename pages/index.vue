@@ -55,6 +55,171 @@
             </ol>
         </section>
 
+        <!-- Sección de Formato del CSV -->
+        <section class="mb-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow">
+            <h2 class="text-2xl font-semibold mb-4 flex items-center">
+                <UIcon name="i-heroicons-document-text" class="mr-2" />
+                Formato del archivo CSV
+            </h2>
+            <p class="mb-6 text-gray-600 dark:text-gray-400">
+                El archivo CSV debe contener una fila por factura con las siguientes columnas:
+            </p>
+
+            <div class="mb-6 overflow-x-auto">
+                <table class="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+                    <thead>
+                        <tr class="bg-gray-100 dark:bg-gray-700">
+                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Columna</th>
+                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">Requerido</th>
+                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Descripción</th>
+                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Si falta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">#</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Número secuencial de la factura (1, 2, 3...)</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
+                        </tr>
+                        <tr class="bg-gray-50 dark:bg-gray-800">
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Número</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-500">—</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                                Número de factura real (ej. F12345, 2406109)<br>
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Nota: Esta columna <strong>NO se usa</strong> en la generación de documentos. Se incluye para compatibilidad con contabilidad.</span>
+                            </td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-green-600">Se procesa si está presente</td>
+                        </tr>
+                        <tr>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Fecha</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Fecha de la factura</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
+                        </tr>
+                        <tr class="bg-gray-50 dark:bg-gray-800">
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Fecha de pago</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-500">—</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Fecha en que se pagó la factura</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-green-600">Se usa la Fecha de la factura</td>
+                        </tr>
+                        <tr>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Actividad</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Tipo de actividad (ej. "Curso Premonitores", "Ocio", "Local")</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
+                        </tr>
+                        <tr class="bg-gray-50 dark:bg-gray-800">
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Concepto</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Descripción del gasto (ej. "Fotocopias", "Desayuno", "Gasolina")</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
+                        </tr>
+                        <tr>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Proveedor</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-500">—</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Nombre del proveedor y/o CIF (ej. "B83409177 / SUR 4 COLORES SL")</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-green-600">Se procesa si está presente</td>
+                        </tr>
+                        <tr class="bg-gray-50 dark:bg-gray-800">
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Total Factura</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Importe total de la factura</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
+                        </tr>
+                        <tr>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Gasto Justificable</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-amber-600">(*)</td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                                Importe a justificar para la subvención<br>
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Puede ser igual o menor al Total Factura</span>
+                            </td>
+                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-amber-600">⚠️ Fila descartada si está vacío</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div class="text-amber-600 dark:text-amber-400 text-sm flex items-start">
+                    <UIcon name="i-heroicons-exclamation-triangle" class="mr-2 mt-0.5" />
+                    <div>
+                        <strong>Nota importante:</strong> La columna <em>Gasto Justificable</em> es opcional pero, si se incluye, debe tener un valor. Si está vacía, toda la fila se descartará.
+                    </div>
+                </div>
+                <div class="text-blue-600 dark:text-blue-400 text-sm flex items-start">
+                    <UIcon name="i-heroicons-information-circle" class="mr-2 mt-0.5" />
+                    <div>
+                        <strong>Puedes incluir columnas extra:</strong> El archivo CSV puede tener columnas adicionales sin problema. Solo se procesarán las columnas listadas arriba; las extra se ignorarán.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formatos Válidos -->
+            <h3 class="text-xl font-semibold mb-4 flex items-center">
+                <UIcon name="i-heroicons-check-circle" class="mr-2" />
+                Formatos válidos
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm">
+                    <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Fechas</h4>
+                    <ul class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                        <li class="flex items-start">
+                            <span class="text-green-600 mr-2">✓</span>
+                            <span><strong>Formato preferido:</strong> DD/MM/YYYY</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-600 mr-2">✓</span>
+                            <span><strong>También acepta:</strong> DD/MM/YY (se asume año 20XX)</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">ℹ</span>
+                            <span><strong>Ejemplos válidos:</strong></span>
+                        </li>
+                        <li class="pl-8 text-gray-600 dark:text-gray-400">
+                            15/01/2025, 4/1/25, 31/12/24
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">ℹ</span>
+                            <span><strong>Rango válido:</strong></span>
+                        </li>
+                        <li class="pl-8 text-gray-600 dark:text-gray-400">
+                            Las fechas deben estar dentro del periodo de la subvención configurado
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm">
+                    <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Importes</h4>
+                    <ul class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                        <li class="flex items-start">
+                            <span class="text-green-600 mr-2">✓</span>
+                            <span><strong>Formato español:</strong> Coma decimal, punto de miles</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-600 mr-2">✓</span>
+                            <span><strong>Símbolo €:</strong> Opcional al final</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">ℹ</span>
+                            <span><strong>Ejemplos válidos:</strong></span>
+                        </li>
+                        <li class="pl-8 text-gray-600 dark:text-gray-400">
+                            123,45 € | 1.234,56 | 89,00 €
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-red-600 mr-2">✗</span>
+                            <span><strong>NO válido:</strong> Punto decimal (formato inglés)</span>
+                        </li>
+                        <li class="pl-8 text-gray-600 dark:text-gray-400">
+                            123.45 | 1,234.56
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
         <!-- Formulario Principal -->
         <section class="mb-12">
             <h2 class="text-2xl font-semibold mb-6">Información y Carga de Datos</h2>
@@ -404,6 +569,71 @@ const isReadyToGenerate = computed(() =>
 const showResultsSection = computed(() =>
     anexoResults.value.length > 0 || mergedPdfUrl.value || anexoError.value || pdfMergeError.value || isGenerating.value
 );
+
+// --- Datos para la tabla de columnas CSV ---
+const csvColumnColumns = [
+    { accessorKey: 'column', header: 'Columna' },
+    { accessorKey: 'required', header: 'Requerido' },
+    { accessorKey: 'description', header: 'Descripción' },
+    { accessorKey: 'missing', header: 'Si falta' }
+];
+
+const csvColumnData = [
+    {
+        column: '#',
+        required: '✓',
+        description: 'Número secuencial de la factura (1, 2, 3...)',
+        missing: 'Error: valor requerido'
+    },
+    {
+        column: 'Número',
+        required: '—',
+        description: 'Número de factura real (ej. F12345, 2406109)\nNota: Esta columna NO se usa en la generación de documentos. Se incluye para compatibilidad con contabilidad.',
+        missing: 'Se procesa si está presente'
+    },
+    {
+        column: 'Fecha',
+        required: '✓',
+        description: 'Fecha de la factura',
+        missing: 'Error: valor requerido'
+    },
+    {
+        column: 'Fecha de pago',
+        required: '—',
+        description: 'Fecha en que se pagó la factura',
+        missing: 'Se usa la Fecha de la factura'
+    },
+    {
+        column: 'Actividad',
+        required: '✓',
+        description: 'Tipo de actividad (ej. "Curso Premonitores", "Ocio", "Local")',
+        missing: 'Error: valor requerido'
+    },
+    {
+        column: 'Concepto',
+        required: '✓',
+        description: 'Descripción del gasto (ej. "Fotocopias", "Desayuno", "Gasolina")',
+        missing: 'Error: valor requerido'
+    },
+    {
+        column: 'Proveedor',
+        required: '—',
+        description: 'Nombre del proveedor y/o CIF (ej. "B83409177 / SUR 4 COLORES SL")',
+        missing: 'Se procesa si está presente'
+    },
+    {
+        column: 'Total Factura',
+        required: '✓',
+        description: 'Importe total de la factura',
+        missing: 'Error: valor requerido'
+    },
+    {
+        column: 'Gasto Justificable',
+        required: '(*)',
+        description: 'Importe a justificar para la subvención\nPuede ser igual o menor al Total Factura',
+        missing: '⚠️ Fila descartada si está vacío'
+    }
+];
 
 // --- Conectar Reseteo de CSV con otros Composables ---
 setInvoiceFolderHandleRef(invoiceFolderHandle);
