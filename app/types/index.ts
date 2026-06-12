@@ -1,5 +1,6 @@
 export interface Factura {
     number: string;
+    invoiceNumber: string;
     providerNumber: string;
     date: string; // Mantenido como string dd/MM/yyyy después de la validación
     datePay?: string; // Opcional: fecha de pago en formato dd/MM/yyyy

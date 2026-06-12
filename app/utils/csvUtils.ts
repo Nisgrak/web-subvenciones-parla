@@ -103,6 +103,7 @@ export function convertFloat(input: string): number | undefined {
  */
 export const csvColumns: ColumnOptions[] = [
     { name: "number", headerName: "#", required: true },
+    { name: "invoiceNumber", headerName: "Número", required: true },
     { name: "providerNumber", headerName: "Proveedor", required: false },
     { name: "date", headerName: "Fecha", required: true, isDate: true },
     { name: "datePay", headerName: "Fecha de pago", required: false, isDate: true },

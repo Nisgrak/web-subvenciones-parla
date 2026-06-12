@@ -95,7 +95,7 @@ export const fillInvoiceRow = (
         // Asumiendo un nombre de proyecto fijo como en el ejemplo, o pasarlo como argumento
         fillTextField(fieldsConfig.proyect(index), invoice.activity);
         fillTextField(fieldsConfig.concept(index), invoice.concept);
-        fillTextField(fieldsConfig.num(index), invoice.providerNumber);
+        fillTextField(fieldsConfig.num(index), invoice.invoiceNumber);
         fillTextField(fieldsConfig.nif(index), invoice.providerNumber);
         fillTextField(fieldsConfig.date(index), invoice.date);
         fillTextField(fieldsConfig.datePay(index), invoice.datePay ?? invoice.date); // Usar datePay si existe, sino la fecha de factura

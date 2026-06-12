@@ -597,9 +597,9 @@ const csvColumnData = [
     },
     {
         column: 'Número',
-        required: '—',
-        description: 'Número de factura real (ej. F12345, 2406109)\nNota: Esta columna NO se usa en la generación de documentos. Se incluye para compatibilidad con contabilidad.',
-        missing: 'Se procesa si está presente'
+        required: '✓',
+        description: 'Número de factura real (ej. F12345, 2406109). Se rellena en la columna "Nº Factura" del Anexo III.',
+        missing: 'Error: valor requerido'
     },
     {
         column: 'Fecha',
