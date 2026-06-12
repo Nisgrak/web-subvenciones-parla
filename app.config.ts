@@ -3,8 +3,8 @@ export default defineAppConfig({
     // Fechas para validación de facturas (Formato YYYY-MM-DD)
     // Estas fechas son inclusivas.
     invoiceDateRange: {
-        startDate: '01/10/2024',
-        endDate: '30/09/2025'
+        startDate: '01/10/2025',
+        endDate: '30/09/2026'
     },
     template: {
         maxRows: 13,

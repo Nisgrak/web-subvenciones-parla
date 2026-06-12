@@ -2,7 +2,7 @@
     <UContainer class="py-8 lg:max-w-[90vw]">
         <!-- Encabezado -->
         <header class="mb-12 text-center">
-            <h1 class="text-4xl font-bold mb-2">Generador de Anexo III subvenciones Parla 2025</h1>
+            <h1 class="text-4xl font-bold mb-2">Generador de Anexo III subvenciones Parla 2026</h1>
             <p class="text-lg text-gray-600 dark:text-gray-400">
                 Sube tu archivo CSV y genera automáticamente los documentos PDF necesarios para tu asociación de forma
                 rápida y sencilla.
@@ -178,7 +178,7 @@
                             <span><strong>Ejemplos válidos:</strong></span>
                         </li>
                         <li class="pl-8 text-gray-600 dark:text-gray-400">
-                            15/01/2025, 4/1/25, 31/12/24
+                            15/01/2026, 4/1/26, 31/12/25
                         </li>
                         <li class="flex items-start">
                             <span class="text-blue-600 mr-2">ℹ</span>
