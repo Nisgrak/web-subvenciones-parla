@@ -1,453 +1,424 @@
 <template>
-    <UContainer class="py-8 lg:max-w-[90vw]">
-        <!-- Encabezado -->
-        <header class="mb-12 text-center">
-            <h1 class="text-4xl font-bold mb-2">Generador de Anexo III subvenciones Parla 2026</h1>
-            <p class="text-lg text-gray-600 dark:text-gray-400">
-                Sube tu archivo CSV y genera automáticamente los documentos PDF necesarios para tu asociación de forma
-                rápida y sencilla.
-            </p>
-        </header>
-
-        <!-- Sección de Tutorial -->
-        <section class="mb-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow">
-            <h2 class="text-2xl font-semibold mb-4">Cómo Funciona</h2>
-            <ol class="list-decimal list-inside space-y-4">
-                <li>
-                    <UIcon name="i-heroicons-document-arrow-down" class="mr-2 align-middle" />
-                    <strong>Descarga la plantilla:</strong> Usa el botón abajo para obtener la plantilla a rellenar.
-                </li>
-                <li>
-                    <UIcon name="i-heroicons-table-cells" class="mr-2 align-middle" />
-                    <strong>Rellena tus datos:</strong> Completa la plantilla con la información requerida (fechas,
-                    importes, etc.).
-                </li>
-                <li>
-                    <UIcon name="i-heroicons-arrow-up-tray" class="mr-2 align-middle" />
-                    <strong>Sube el archivo relleno:</strong> Carga el archivo completado en el formulario.
-                </li>
-                <li>
-                    <UIcon name="i-heroicons-folder-arrow-down" class="mr-2 align-middle" />
-                    <strong>(Opcional) Selecciona carpeta de facturas:</strong> Si deseas adjuntar los PDF de las
-                    facturas, selecciona la carpeta que los contiene.
-                    <ul class="list-disc list-inside pl-6 text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        <li>Los archivos PDF deben llamarse <code>facturaNNN.pdf</code> (ej.
-                            <code>factura001.pdf</code>, <code>factura042.pdf</code>).
-                        </li>
-                        <li>El número <code>NNN</code> debe coincidir con la columna "#" del archivo (ej. '1' o '42').
-                        </li>
-                    </ul>
-                </li>
-                <li>
-                    <UIcon name="i-heroicons-information-circle" class="mr-2 align-middle" />
-                    <strong>Introduce datos de la asociación:</strong> Rellena el nombre, CIF y datos del representante.
-                </li>
-                <li>
-                    <UIcon name="i-heroicons-cog-6-tooth" class="mr-2 align-middle" />
-                    <strong>Genera los documentos:</strong> Haz clic en "Generar documentos". Se creará el Anexo III y,
-                    si seleccionaste una carpeta, un PDF adicional con las facturas adjuntas.
-                </li>
-                <li>
-                    <UIcon name="i-heroicons-arrow-down-tray" class="mr-2 align-middle" />
-                    <strong>Descarga tus documentos:</strong> Una vez generados, podrás descargar los PDFs
-                    resultantes.
-                </li>
-            </ol>
-        </section>
-
-        <!-- Sección de Formato del CSV -->
-        <section class="mb-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow">
-            <h2 class="text-2xl font-semibold mb-4 flex items-center">
-                <UIcon name="i-heroicons-document-text" class="mr-2" />
-                Formato del archivo CSV
-            </h2>
-            <p class="mb-6 text-gray-600 dark:text-gray-400">
-                El archivo CSV debe contener una fila por factura con las siguientes columnas:
-            </p>
-
-            <div class="mb-6 overflow-x-auto">
-                <table class="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
-                    <thead>
-                        <tr class="bg-gray-100 dark:bg-gray-700">
-                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Columna</th>
-                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">Requerido</th>
-                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Descripción</th>
-                            <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Si falta</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">#</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Número secuencial de la factura (1, 2, 3...)</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
-                        </tr>
-                        <tr class="bg-gray-50 dark:bg-gray-800">
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Número</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-500">—</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">
-                                Número de factura real (ej. F12345, 2406109)<br>
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Nota: Esta columna <strong>NO se usa</strong> en la generación de documentos. Se incluye para compatibilidad con contabilidad.</span>
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-green-600">Se procesa si está presente</td>
-                        </tr>
-                        <tr>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Fecha</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Fecha de la factura</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
-                        </tr>
-                        <tr class="bg-gray-50 dark:bg-gray-800">
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Fecha de pago</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-500">—</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Fecha en que se pagó la factura</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-green-600">Se usa la Fecha de la factura</td>
-                        </tr>
-                        <tr>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Actividad</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Tipo de actividad (ej. "Curso Premonitores", "Ocio", "Local")</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
-                        </tr>
-                        <tr class="bg-gray-50 dark:bg-gray-800">
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Concepto</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Descripción del gasto (ej. "Fotocopias", "Desayuno", "Gasolina")</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
-                        </tr>
-                        <tr>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Proveedor</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-gray-500">—</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Nombre del proveedor y/o CIF (ej. "B83409177 / SUR 4 COLORES SL")</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-green-600">Se procesa si está presente</td>
-                        </tr>
-                        <tr class="bg-gray-50 dark:bg-gray-800">
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Total Factura</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-red-600 font-bold">✓</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">Importe total de la factura</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-red-600">Error: valor requerido</td>
-                        </tr>
-                        <tr>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-mono">Gasto Justificable</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center text-amber-600">(*)</td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">
-                                Importe a justificar para la subvención<br>
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Puede ser igual o menor al Total Factura</span>
-                            </td>
-                            <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-amber-600">⚠️ Fila descartada si está vacío</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="space-y-4 mb-6">
-                <div class="text-amber-600 dark:text-amber-400 text-sm flex items-start">
-                    <UIcon name="i-heroicons-exclamation-triangle" class="mr-2 mt-0.5" />
-                    <div>
-                        <strong>Nota importante:</strong> La columna <em>Gasto Justificable</em> es opcional pero, si se incluye, debe tener un valor. Si está vacía, toda la fila se descartará.
-                    </div>
-                </div>
-                <div class="text-blue-600 dark:text-blue-400 text-sm flex items-start">
-                    <UIcon name="i-heroicons-information-circle" class="mr-2 mt-0.5" />
-                    <div>
-                        <strong>Puedes incluir columnas extra:</strong> El archivo CSV puede tener columnas adicionales sin problema. Solo se procesarán las columnas listadas arriba; las extra se ignorarán.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Formatos Válidos -->
-            <h3 class="text-xl font-semibold mb-4 flex items-center">
-                <UIcon name="i-heroicons-check-circle" class="mr-2" />
-                Formatos válidos
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm">
-                    <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Fechas</h4>
-                    <ul class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                        <li class="flex items-start">
-                            <span class="text-green-600 mr-2">✓</span>
-                            <span><strong>Formato preferido:</strong> DD/MM/YYYY</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-green-600 mr-2">✓</span>
-                            <span><strong>También acepta:</strong> DD/MM/YY (se asume año 20XX)</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-blue-600 mr-2">ℹ</span>
-                            <span><strong>Ejemplos válidos:</strong></span>
-                        </li>
-                        <li class="pl-8 text-gray-600 dark:text-gray-400">
-                            15/01/2026, 4/1/26, 31/12/25
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-blue-600 mr-2">ℹ</span>
-                            <span><strong>Rango válido:</strong></span>
-                        </li>
-                        <li class="pl-8 text-gray-600 dark:text-gray-400">
-                            Las fechas deben estar dentro del periodo de la subvención configurado
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm">
-                    <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Importes</h4>
-                    <ul class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                        <li class="flex items-start">
-                            <span class="text-green-600 mr-2">✓</span>
-                            <span><strong>Formato español:</strong> Coma decimal, punto de miles</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-green-600 mr-2">✓</span>
-                            <span><strong>Símbolo €:</strong> Opcional al final</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-blue-600 mr-2">ℹ</span>
-                            <span><strong>Ejemplos válidos:</strong></span>
-                        </li>
-                        <li class="pl-8 text-gray-600 dark:text-gray-400">
-                            123,45 € | 1.234,56 | 89,00 €
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-red-600 mr-2">✗</span>
-                            <span><strong>NO válido:</strong> Punto decimal (formato inglés)</span>
-                        </li>
-                        <li class="pl-8 text-gray-600 dark:text-gray-400">
-                            123.45 | 1,234.56
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- Formulario Principal -->
-        <section class="mb-12">
-            <h2 class="text-2xl font-semibold mb-6">Información y Carga de Datos</h2>
-
-            <!-- Datos Asociación -->
-            <UCard class="mb-6">
-                <template #header>
-                    <h3 class="text-lg font-medium">Datos de la asociación y representante (Obligatorio)</h3>
-                </template>
-                <!-- Usamos formData directamente, ya que es reactivo -->
-                <UForm :state="formData" class="space-y-4 space-x-4 flex flex-row flex-wrap">
-                    <UFormField
-label="Nombre de la Asociación" name="associationName" required
-                        class="flex-1 min-w-[250px]">
-                        <UInput v-model="formData.associationName" placeholder="Asociación Ejemplo XYZ" />
-                    </UFormField>
-                    <UFormField
-label="CIF de la Asociación" name="associationCif" required
-                        class="flex-1 min-w-[150px]">
-                        <UInput v-model="formData.associationCif" placeholder="G12345678" />
-                    </UFormField>
-                    <UFormField
-label="Nombre del representante" name="representativeName" required
-                        class="flex-1 min-w-[250px]">
-                        <UInput v-model="formData.representativeName" placeholder="Juan Pérez García" />
-                    </UFormField>
-                    <UFormField
-label="CIF/DNI del representante" name="representativeId" required
-                        class="flex-1 min-w-[150px]">
-                        <UInput v-model="formData.representativeId" placeholder="12345678A" />
-                    </UFormField>
-                </UForm>
-            </UCard>
-
-            <!-- Carga de Datos: CSV y Carpeta Opcional -->
-            <UCard>
-                <template #header>
-                    <h3 class="text-lg font-medium">Origen de datos para generación</h3>
-                </template>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    <!-- Columna 1: Carga CSV Obligatoria -->
-                    <div class="border p-4 rounded-md flex flex-col">
-                        <h4 class="font-semibold mb-3">1. Cargar archivo (Obligatorio)</h4>
-                        <UFormField label="Archivo de facturas (.csv)" name="csvFile" required>
-                            <UInput
-type="file" size="lg" accept=".csv, text/csv"
-                                :disabled="isGenerating || isProcessingFolder" @change="handleFileChange" />
-                        </UFormField>
-                        <div class="flex items-center space-x-4 mt-2 mb-4">
-                            <UButton
-variant="outline" icon="i-heroicons-document-arrow-down"
-                                label="Descargar plantilla" href="/Facturas Subvención - Plantilla.csv" external
-                                :disabled="isGenerating || isProcessingFolder" />
-                            <!-- Info Archivo Cargado -->
-                            <div class="text-sm flex-grow">
-                                <div v-if="!csvFile" class="text-gray-500 dark:text-gray-400">(No hay archivo
-                                    cargado)</div>
-                                <div v-else class="text-green-600 dark:text-green-400 flex items-center" :title="csvFile.name">
-                                    <UIcon name="i-heroicons-check-circle" class="mr-1 min-w-5" />
-                                    <div class="">
-
-                                        {{ csvFile.name }} ({{
-                                            csvData.length }}
-                                        filas válidas)
-                                    </div>
-                                </div>
-                                <div
-v-if="parsingError && parsingRowErrors.length === 0" class="text-red-500 mt-1"
-                                    :title="parsingError">
-                                    Error General: {{ parsingError }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tabla de Errores de Parseo CSV -->
-                        <div v-if="parsingRowErrors.length > 0" class="mt-4 overflow-auto flex-grow">
-                            <h5 class="text-red-600 dark:text-red-400 font-semibold mb-2">Errores encontrados en el archivo
-                                ({{
-                                    parsingRowErrors.length }}):</h5>
-                            <UTable
-:data="parsingRowErrors" :columns="[
-                                { accessorKey: 'line', header: 'Línea del archivo' },
-                                { accessorKey: 'message', header: 'Error' }
-                            ]" />
-                        </div>
-                    </div>
-
-                    <!-- Columna 2: Selección Carpeta Opcional -->
-                    <div class="border p-4 rounded-md">
-                        <h4 class="font-semibold mb-3">2. (Opcional) Adjuntar facturas PDF</h4>
-                        
-                            <UButton
-class="w-full" icon="i-heroicons-folder-arrow-down"
-                                label="Seleccionar Carpeta de Facturas"
-                                :disabled="csvData.length === 0 || isGenerating || isProcessingFolder"
-                                :loading="isProcessingFolder" @click="selectAndFindInvoicePdfs" />
-               
-
-                        <!-- Feedback Selección Carpeta -->
-                        <div class="mt-3 text-sm space-y-1">
-                            <div v-if="searchError" class="text-red-500">
-                                Error carpeta: {{ searchError }}
-                            </div>
-                            <div v-if="invoiceFolderHandle">
-                                <UIcon name="i-heroicons-check-circle" class="text-green-500 mr-1" />
-                                Carpeta seleccionada: <i>{{ invoiceFolderHandle.name }}</i>
-                                <span v-if="!isProcessingFolder"> ({{ foundInvoicePdfs.size }} facturas encontradas de
-                                    {{
-                                        csvData.length }} en CSV)</span>
-                            </div>
-                            <div v-else-if="!searchError" class="text-gray-500 dark:text-gray-400">
-                                (No se ha seleccionado carpeta)
-                            </div>
-                            <div
-v-if="missingInvoiceNumbers.length > 0 && !isProcessingFolder && !searchError"
-                                class="text-amber-600 dark:text-amber-400">
-                                <span class="font-medium">Facturas del archivo no encontradas en carpeta (formato incorrecto o ausentes):</span> {{ missingInvoiceNumbers.join(', ') }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Botón Principal de Generación -->
-                <div class="text-center mt-6 pt-4 border-t">
-                    <UButton
-size="xl" color="primary" icon="i-heroicons-cog-6-tooth" label="Generar Documentos"
-                        :loading="isGenerating" :disabled="!isReadyToGenerate || isGenerating"
-                        @click="generateDocuments" />
-                    <p v-if="!isReadyToGenerate && !isGenerating" class="text-xs text-gray-500 mt-1">
-                        (Necesitas cargar un archivo válido y rellenar los datos de la asociación)
+    <UContainer class="py-6 md:py-10 lg:max-w-6xl">
+        <header class="mb-8 rounded-2xl border border-primary/15 bg-primary-50/70 p-6 dark:bg-primary-950/20 md:p-8">
+            <div class="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
+                <div class="max-w-3xl">
+                    <p class="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-primary-700 ring-1 ring-primary/15 dark:bg-gray-900 dark:text-primary-300">
+                        <UIcon name="i-heroicons-document-check" class="size-4" />
+                        Subvenciones Parla 2026
+                    </p>
+                    <h1 class="text-balance text-3xl font-bold tracking-tight text-gray-950 dark:text-white md:text-4xl">
+                        Genera el Anexo III paso a paso
+                    </h1>
+                    <p class="mt-4 max-w-2xl text-pretty text-base leading-7 text-gray-700 dark:text-gray-300 md:text-lg">
+                        Descarga la plantilla, sube tus facturas en CSV y revisa cada paso antes de descargar los documentos finales.
                     </p>
                 </div>
-            </UCard>
+
+                <div class="flex flex-col gap-3 rounded-xl bg-white p-4 ring-1 ring-gray-200 dark:bg-gray-900 dark:ring-gray-800">
+                    <UButton
+                        size="lg"
+                        icon="i-heroicons-document-arrow-down"
+                        label="Descargar plantilla CSV"
+                        href="/Facturas Subvención - Plantilla.csv"
+                        external
+                        :disabled="isGenerating || isProcessingFolder"
+                    />
+                    <p class="text-sm leading-6 text-gray-600 dark:text-gray-400">
+                        Completa una fila por factura. Puedes volver aquí y subirla cuando esté lista.
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <section class="mb-8 grid gap-3 md:grid-cols-4" aria-label="Estado del trámite">
+            <div class="step-chip" :class="csvData.length > 0 ? 'step-chip-ready' : 'step-chip-pending'">
+                <span class="step-number">1</span>
+                <span>
+                    <strong>CSV</strong>
+                    <small>{{ csvStepStatus }}</small>
+                </span>
+            </div>
+            <div class="step-chip" :class="hasAssociationData ? 'step-chip-ready' : 'step-chip-pending'">
+                <span class="step-number">2</span>
+                <span>
+                    <strong>Datos</strong>
+                    <small>{{ associationStepStatus }}</small>
+                </span>
+            </div>
+            <div class="step-chip" :class="invoiceFolderHandle ? 'step-chip-ready' : 'step-chip-pending'">
+                <span class="step-number">3</span>
+                <span>
+                    <strong>Facturas</strong>
+                    <small>{{ invoiceStepStatus }}</small>
+                </span>
+            </div>
+            <div class="step-chip" :class="showResultsSection ? 'step-chip-ready' : 'step-chip-pending'">
+                <span class="step-number">4</span>
+                <span>
+                    <strong>Descarga</strong>
+                    <small>{{ resultsStepStatus }}</small>
+                </span>
+            </div>
         </section>
 
-        <!-- Sección de Resultados -->
-        <section v-if="showResultsSection" class="mt-12">
-            <h2 class="text-2xl font-semibold mb-6">Resultados de Generación</h2>
-            <UCard>
-                <!-- Indicadores de Progreso -->
-                <div v-if="isGenerating" class="my-4 text-center space-y-4">
-                    <div v-if="isGeneratingAnexo">
-                        <p class="mb-1">Generando Anexo III... ({{ anexoGenerationProgress }}%)</p>
-                        <UProgress :value="anexoGenerationProgress" indicator size="sm" />
-                    </div>
-                    <div v-if="isMergingPdfs">
-                        <p class="mb-1">Generando PDF de facturas adjuntas... ({{ pdfMergeProgress }}%)</p>
-                        <UProgress :value="pdfMergeProgress" indicator size="sm" />
-                    </div>
-                </div>
+        <main class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <div class="space-y-6">
+                <UCard>
+                    <template #header>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 class="text-xl font-semibold text-gray-950 dark:text-white">1. Sube el CSV de facturas</h2>
+                                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Primero comprobamos que las filas tengan el formato esperado.</p>
+                            </div>
+                            <UButton
+                                variant="outline"
+                                icon="i-heroicons-document-arrow-down"
+                                label="Plantilla"
+                                href="/Facturas Subvención - Plantilla.csv"
+                                external
+                                :disabled="isGenerating || isProcessingFolder"
+                            />
+                        </div>
+                    </template>
 
-                <!-- Área de resultados -->
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-5">
+                        <UFormField label="Archivo de facturas (.csv)" name="csvFile" required>
+                            <UInput
+                                type="file"
+                                size="lg"
+                                accept=".csv, text/csv"
+                                :disabled="isGenerating || isProcessingFolder"
+                                @change="handleFileChange"
+                            />
+                        </UFormField>
 
-                    <!-- Resultados Anexo III -->
-                    <div class="border rounded-md p-4">
-                        <h3 class="text-lg font-medium mb-2">Anexo III</h3>
-                        <div v-if="anexoResults.length > 0">
-                            <p class="text-green-600 dark:text-green-400 mb-4">¡Anexo III generado con éxito!</p>
-                            <ul class="space-y-2 text-left max-w-md mx-auto mb-4">
-                                <li v-for="(result, index) in anexoResults" :key="`anexo-${index}`">
-                                    <a
-:href="result.url" :download="result.name" :title="`Descargar ${result.name}`"
-                                        class="text-primary hover:underline flex items-center">
-                                        <UIcon name="i-heroicons-document-arrow-down" class="mr-2 flex-shrink-0" />
-                                        <span class="truncate">{{ result.name }}</span>
-                                    </a>
+                        <div v-if="csvFile" class="status-panel status-panel-success">
+                            <UIcon name="i-heroicons-check-circle" class="mt-0.5 size-5 shrink-0" />
+                            <div class="min-w-0">
+                                <p class="font-medium">{{ csvFile.name }}</p>
+                                <p class="text-sm">{{ formatReadyRows(csvData.length) }}.</p>
+                            </div>
+                        </div>
+                        <div v-else class="status-panel status-panel-muted">
+                            <UIcon name="i-heroicons-arrow-up-tray" class="mt-0.5 size-5 shrink-0" />
+                            <p>Cuando subas el CSV, aquí verás si las filas son válidas o qué hay que corregir.</p>
+                        </div>
+
+                        <div v-if="parsingError && parsingRowErrors.length === 0" class="status-panel status-panel-error" :title="parsingError">
+                            <UIcon name="i-heroicons-exclamation-circle" class="mt-0.5 size-5 shrink-0" />
+                            <div>
+                                <p class="font-medium">No hemos podido leer el archivo</p>
+                                <p class="text-sm">{{ parsingError }}</p>
+                            </div>
+                        </div>
+
+                        <div v-if="parsingRowErrors.length > 0" class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/20">
+                            <div class="flex flex-col gap-4 text-red-700 dark:text-red-300 sm:flex-row sm:items-start sm:justify-between">
+                                <div class="flex items-start gap-2">
+                                <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
+                                <div>
+                                    <h3 class="font-semibold">Hay {{ formatCount(parsingRowErrors.length, 'error que corregir', 'errores que corregir') }} en el CSV</h3>
+                                    <p class="text-sm">Corrige esas líneas y vuelve a subir el archivo.</p>
+                                    <p v-if="parsingRowErrors[0]" class="mt-2 text-sm">
+                                        Primer error: línea {{ parsingRowErrors[0].line }}, {{ parsingRowErrors[0].message }}
+                                    </p>
+                                </div>
+                            </div>
+
+                                <UModal
+                                    title="Errores encontrados en el CSV"
+                                    description="Revisa las líneas señaladas, corrige la plantilla y vuelve a subirla."
+                                    :ui="{ content: 'max-w-4xl' }"
+                                    scrollable
+                                >
+                                    <UButton
+                                        color="error"
+                                        variant="soft"
+                                        icon="i-heroicons-list-bullet"
+                                        trailing-icon="i-heroicons-arrow-top-right-on-square"
+                                        label="Ver errores"
+                                    />
+
+                                    <template #body>
+                                        <div class="overflow-x-auto rounded-xl border border-red-200 bg-white dark:border-red-900/60 dark:bg-gray-950">
+                                            <UTable
+                                                :data="parsingRowErrors"
+                                                :columns="[
+                                                    { accessorKey: 'line', header: 'Línea del archivo' },
+                                                    { accessorKey: 'message', header: 'Error' }
+                                                ]"
+                                            />
+                                        </div>
+                                    </template>
+                                </UModal>
+                            </div>
+                        </div>
+
+                        <UModal
+                            title="Columnas y formatos aceptados"
+                            description="Consulta esta guía cuando estés preparando o corrigiendo la plantilla CSV."
+                            :ui="{ content: 'max-w-5xl' }"
+                            scrollable
+                        >
+                            <UButton
+                                variant="soft"
+                                color="neutral"
+                                icon="i-heroicons-table-cells"
+                                trailing-icon="i-heroicons-arrow-top-right-on-square"
+                                label="Ver columnas y formatos aceptados"
+                            />
+
+                            <template #body>
+                                <div class="space-y-5">
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/70">
+                                        <h3 class="font-semibold text-gray-900 dark:text-white">Fechas</h3>
+                                        <ul class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                            <li><strong>Preferido:</strong> DD/MM/YYYY.</li>
+                                            <li><strong>También acepta:</strong> DD/MM/YY.</li>
+                                            <li><strong>Ejemplos:</strong> 15/01/2026, 4/1/26, 31/12/25.</li>
+                                            <li><strong>Rango:</strong> {{ configStartDateString }} a {{ configEndDateString }}.</li>
+                                        </ul>
+                                    </div>
+                                    <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/70">
+                                        <h3 class="font-semibold text-gray-900 dark:text-white">Importes</h3>
+                                        <ul class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                            <li><strong>Correcto:</strong> coma decimal y punto de miles.</li>
+                                            <li><strong>Ejemplos:</strong> 123,45 €, 1.234,56, 89,00 €.</li>
+                                            <li><strong>Evita:</strong> 123.45 o 1,234.56.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="csv-help-table-wrap">
+                                    <table class="csv-help-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Columna</th>
+                                                <th>Estado</th>
+                                                <th>Descripción</th>
+                                                <th>Si falta</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="column in csvColumnData" :key="column.column">
+                                                <td>
+                                                    <code>{{ column.column }}</code>
+                                                </td>
+                                                <td>
+                                                    <span class="csv-badge" :class="getCsvRequiredClass(column.required)">
+                                                        {{ getCsvRequiredLabel(column.required) }}
+                                                    </span>
+                                                </td>
+                                                <td class="csv-description">
+                                                    <span v-for="line in column.description.split('\n')" :key="line">{{ line }}</span>
+                                                </td>
+                                                <td class="csv-missing" :class="getCsvMissingClass(column.missing)">
+                                                    {{ column.missing }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="status-panel status-panel-warning">
+                                    <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
+                                    <p><strong>Gasto Justificable:</strong> si la columna existe y una fila está vacía, esa fila se descartará. Las columnas extra se ignoran.</p>
+                                </div>
+                                </div>
+                            </template>
+                        </UModal>
+                    </div>
+                </UCard>
+
+                <UCard>
+                    <template #header>
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-950 dark:text-white">2. Datos de la asociación</h2>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Se guardan en este navegador para que no tengas que repetirlos cada vez.</p>
+                        </div>
+                    </template>
+
+                    <UForm :state="formData" class="grid gap-4 md:grid-cols-2">
+                        <UFormField label="Nombre de la asociación" name="associationName" required>
+                            <UInput v-model="formData.associationName" placeholder="Asociación Ejemplo XYZ" />
+                        </UFormField>
+                        <UFormField label="CIF de la asociación" name="associationCif" required>
+                            <UInput v-model="formData.associationCif" placeholder="G12345678" />
+                        </UFormField>
+                        <UFormField label="Nombre del representante" name="representativeName" required>
+                            <UInput v-model="formData.representativeName" placeholder="Juan Pérez García" />
+                        </UFormField>
+                        <UFormField label="CIF/DNI del representante" name="representativeId" required>
+                            <UInput v-model="formData.representativeId" placeholder="12345678A" />
+                        </UFormField>
+                    </UForm>
+                </UCard>
+
+                <UCard>
+                    <template #header>
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-950 dark:text-white">3. Adjunta facturas PDF, si las necesitas</h2>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Este paso es opcional. Si eliges una carpeta, se generará también un PDF único con las facturas encontradas.</p>
+                        </div>
+                    </template>
+
+                    <div class="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px] md:items-start">
+                        <div class="space-y-3 text-sm leading-6 text-gray-700 dark:text-gray-300">
+                            <p>Los archivos deben llamarse <code>facturaNNN.pdf</code>, por ejemplo <code>factura001.pdf</code> o <code>factura042.pdf</code>.</p>
+                            <p>El número <code>NNN</code> debe coincidir con la columna <code>#</code> del CSV.</p>
+                            <p v-if="!supportsInvoiceFolderPicker" class="text-amber-700 dark:text-amber-300">La selección de carpetas requiere un navegador compatible como Chrome o Edge.</p>
+                        </div>
+
+                        <UButton
+                            class="w-full justify-center"
+                            icon="i-heroicons-folder-arrow-down"
+                            label="Elegir carpeta"
+                            :disabled="csvData.length === 0 || isGenerating || isProcessingFolder || !supportsInvoiceFolderPicker"
+                            :loading="isProcessingFolder"
+                            @click="selectAndFindInvoicePdfs"
+                        />
+                    </div>
+
+                    <div class="mt-5 space-y-3">
+                        <div v-if="searchError" class="status-panel status-panel-error">
+                            <UIcon name="i-heroicons-exclamation-circle" class="mt-0.5 size-5 shrink-0" />
+                            <p><strong>Error carpeta:</strong> {{ searchError }}</p>
+                        </div>
+                        <div v-else-if="invoiceFolderHandle" class="status-panel status-panel-success">
+                            <UIcon name="i-heroicons-check-circle" class="mt-0.5 size-5 shrink-0" />
+                            <p>
+                                Carpeta <strong>{{ invoiceFolderHandle.name }}</strong> seleccionada.
+                                <span v-if="!isProcessingFolder">{{ formatFoundInvoices(foundInvoicePdfs.size, csvData.length) }}.</span>
+                            </p>
+                        </div>
+                        <div v-else class="status-panel status-panel-muted">
+                            <UIcon name="i-heroicons-folder" class="mt-0.5 size-5 shrink-0" />
+                            <p>Puedes saltarte este paso y generar solo el Anexo III.</p>
+                        </div>
+                        <div v-if="missingInvoiceNumbers.length > 0 && !isProcessingFolder && !searchError" class="status-panel status-panel-warning">
+                            <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
+                            <p><strong>No encontradas:</strong> {{ missingInvoiceNumbers.join(', ') }}. Revisa el nombre de archivo o la columna #.</p>
+                        </div>
+                    </div>
+                </UCard>
+            </div>
+
+            <aside class="space-y-6 lg:sticky lg:top-6">
+                <UCard>
+                    <template #header>
+                        <h2 class="text-xl font-semibold text-gray-950 dark:text-white">4. Genera y descarga</h2>
+                    </template>
+
+                    <div class="space-y-5">
+                        <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/70">
+                            <h3 class="font-medium text-gray-950 dark:text-white">Antes de generar</h3>
+                            <ul class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                <li class="flex gap-2">
+                                    <UIcon :name="csvData.length > 0 ? 'i-heroicons-check-circle' : 'i-heroicons-clock'" class="mt-0.5 size-4 shrink-0" :class="csvData.length > 0 ? 'text-green-600' : 'text-gray-400'" />
+                                    CSV válido cargado
+                                </li>
+                                <li class="flex gap-2">
+                                    <UIcon :name="hasAssociationData ? 'i-heroicons-check-circle' : 'i-heroicons-clock'" class="mt-0.5 size-4 shrink-0" :class="hasAssociationData ? 'text-green-600' : 'text-gray-400'" />
+                                    Datos obligatorios completos
+                                </li>
+                                <li class="flex gap-2">
+                                    <UIcon name="i-heroicons-information-circle" class="mt-0.5 size-4 shrink-0 text-primary" />
+                                    Facturas PDF opcionales
                                 </li>
                             </ul>
                         </div>
-                        <div v-if="anexoError">
-                            <p class="text-red-600 dark:text-red-400 font-medium">Error al generar Anexo III:</p>
-                            <p class="text-red-600 dark:text-red-400 text-sm">{{ anexoError }}</p>
+
+                        <UButton
+                            block
+                            size="xl"
+                            color="primary"
+                            icon="i-heroicons-cog-6-tooth"
+                            label="Generar documentos"
+                            :loading="isGenerating"
+                            :disabled="!isReadyToGenerate || isGenerating"
+                            @click="generateDocuments"
+                        />
+                        <p v-if="!isReadyToGenerate && !isGenerating" class="text-sm text-gray-600 dark:text-gray-400">
+                            Completa el CSV y los datos obligatorios para activar la generación.
+                        </p>
+                    </div>
+                </UCard>
+
+                <UCard v-if="showResultsSection || isGenerating">
+                    <template #header>
+                        <h2 class="text-xl font-semibold text-gray-950 dark:text-white">Resultados</h2>
+                    </template>
+
+                    <div v-if="isGenerating" class="space-y-4">
+                        <div v-if="isGeneratingAnexo">
+                            <div class="mb-2 flex justify-between text-sm font-medium">
+                                <span>Generando Anexo III</span>
+                                <span>{{ anexoGenerationProgress }}%</span>
+                            </div>
+                            <UProgress :value="anexoGenerationProgress" indicator size="sm" />
                         </div>
-                        <div v-if="anexoResults.length === 0 && !anexoError" class="text-gray-500 dark:text-gray-400">
-                            (No generado o pendiente)
+                        <div v-if="isMergingPdfs">
+                            <div class="mb-2 flex justify-between text-sm font-medium">
+                                <span>Uniendo facturas</span>
+                                <span>{{ pdfMergeProgress }}%</span>
+                            </div>
+                            <UProgress :value="pdfMergeProgress" indicator size="sm" />
                         </div>
                     </div>
 
-                    <!-- Resultados Facturas Fusionadas -->
-                    <div class="border rounded-md p-4">
-                        <h3 class="text-lg font-medium mb-2">Facturas adjuntas (PDF Único)</h3>
-                        <div v-if="mergedPdfUrl">
-                            <p class="text-green-600 dark:text-green-400 mb-4">¡PDF de facturas adjuntas generado con
-                                éxito!</p>
-                            <div class="max-w-md mx-auto mb-4">
+                    <div v-else class="space-y-5">
+                        <div>
+                            <h3 class="font-semibold text-gray-950 dark:text-white">Anexo III</h3>
+                            <div v-if="anexoResults.length > 0" class="mt-3 space-y-2">
+                                <p class="text-sm text-green-700 dark:text-green-300">Documento generado correctamente.</p>
                                 <a
-:href="mergedPdfUrl" download="Facturas_Adjuntas.pdf"
-                                    title="Descargar PDF de Facturas Adjuntas"
-                                    class="text-primary hover:underline flex items-center justify-center">
-                                    <UIcon name="i-heroicons-document-arrow-down" class="mr-2 flex-shrink-0" />
-                                    <span class="truncate">Facturas_Adjuntas.pdf</span>
+                                    v-for="(result, index) in anexoResults"
+                                    :key="`anexo-${index}`"
+                                    :href="result.url"
+                                    :download="result.name"
+                                    :title="`Descargar ${result.name}`"
+                                    class="download-link"
+                                >
+                                    <UIcon name="i-heroicons-arrow-down-tray" class="size-4 shrink-0" />
+                                    <span class="truncate">{{ result.name }}</span>
                                 </a>
                             </div>
-                            <p v-if="pdfMergeError" class="text-amber-600 dark:text-amber-400 text-xs mt-2">Nota:
-                                Algunas facturas pudieron dar error durante la fusión. {{ pdfMergeError }}</p>
+                            <div v-else-if="anexoError" class="status-panel status-panel-error mt-3">
+                                <UIcon name="i-heroicons-exclamation-circle" class="mt-0.5 size-5 shrink-0" />
+                                <p>{{ anexoError }}</p>
+                            </div>
+                            <p v-else class="mt-2 text-sm text-gray-500 dark:text-gray-400">Pendiente de generar.</p>
                         </div>
-                        <div v-else-if="pdfMergeError && !mergedPdfUrl">
-                            <p class="text-red-600 dark:text-red-400 font-medium">Error al generar PDF de facturas:</p>
-                            <p class="text-red-600 dark:text-red-400 text-sm">{{ pdfMergeError }}</p>
-                        </div>
-                        <div v-else-if="!invoiceFolderHandle" class="text-gray-500 dark:text-gray-400">
-                            (No se seleccionó carpeta para adjuntar facturas)
-                        </div>
-                        <div
-v-else-if="foundInvoicePdfs.size === 0 && !searchError"
-                            class="text-amber-600 dark:text-amber-400">
-                            (No se encontraron facturas válidas en la carpeta seleccionada)
-                        </div>
-                        <div
-v-else-if="invoiceFolderHandle && foundInvoicePdfs.size > 0 && !isGenerating && !mergedPdfUrl && !pdfMergeError"
-                            class="text-gray-500 dark:text-gray-400">
-                            (Facturas encontradas, pendiente de generar PDF adjunto)
+
+                        <div class="border-t border-gray-200 pt-5 dark:border-gray-800">
+                            <h3 class="font-semibold text-gray-950 dark:text-white">Facturas adjuntas</h3>
+                            <div v-if="mergedPdfUrl" class="mt-3 space-y-2">
+                                <p class="text-sm text-green-700 dark:text-green-300">PDF de facturas generado correctamente.</p>
+                                <a
+                                    :href="mergedPdfUrl"
+                                    download="Facturas_Adjuntas.pdf"
+                                    title="Descargar PDF de Facturas Adjuntas"
+                                    class="download-link"
+                                >
+                                    <UIcon name="i-heroicons-arrow-down-tray" class="size-4 shrink-0" />
+                                    <span class="truncate">Facturas_Adjuntas.pdf</span>
+                                </a>
+                                <p v-if="pdfMergeError" class="text-sm text-amber-700 dark:text-amber-300">Algunas facturas pudieron dar error. {{ pdfMergeError }}</p>
+                            </div>
+                            <div v-else-if="pdfMergeError" class="status-panel status-panel-error mt-3">
+                                <UIcon name="i-heroicons-exclamation-circle" class="mt-0.5 size-5 shrink-0" />
+                                <p>{{ pdfMergeError }}</p>
+                            </div>
+                            <p v-else-if="!invoiceFolderHandle" class="mt-2 text-sm text-gray-500 dark:text-gray-400">No se seleccionó carpeta.</p>
+                            <p v-else-if="foundInvoicePdfs.size === 0 && !searchError" class="mt-2 text-sm text-amber-700 dark:text-amber-300">No se encontraron facturas válidas.</p>
+                            <p v-else class="mt-2 text-sm text-gray-500 dark:text-gray-400">Facturas encontradas, pendiente de generar.</p>
                         </div>
                     </div>
-                </div>
-
-                <!-- Mensaje si no hay acciones realizadas -->
-                <div
-v-if="!isGenerating && anexoResults.length === 0 && !mergedPdfUrl && !anexoError && !pdfMergeError && !parsingError"
-                    class="text-center text-gray-500 dark:text-gray-400 py-4">
-                    Carga un archivo y haz clic en "Generar documentos" para ver los resultados aquí.
-                </div>
-
-            </UCard>
-        </section>
-
+                </UCard>
+            </aside>
+        </main>
     </UContainer>
 </template>
 
@@ -558,6 +529,17 @@ const {
 
 // --- Lógica de UI y Habilitación ---
 
+const formatCount = (count: number, singular: string, plural: string) => `${count} ${count === 1 ? singular : plural}`;
+
+const formatReadyRows = (count: number) =>
+    count === 1 ? '1 fila válida lista para generar' : `${count} filas válidas listas para generar`;
+
+const formatFoundInvoices = (found: number, total: number) => {
+    const foundText = formatCount(found, 'factura encontrada', 'facturas encontradas');
+    const totalText = formatCount(total, 'factura del CSV', 'facturas del CSV');
+    return `${foundText} de ${totalText}`;
+};
+
 const isReadyToGenerate = computed(() =>
     csvData.value.length > 0 &&
     !!formData.associationName &&
@@ -566,17 +548,45 @@ const isReadyToGenerate = computed(() =>
     !!formData.representativeId
 );
 
+const hasAssociationData = computed(() =>
+    !!formData.associationName &&
+    !!formData.associationCif &&
+    !!formData.representativeName &&
+    !!formData.representativeId
+);
+
+const supportsInvoiceFolderPicker = computed(() =>
+    typeof window !== 'undefined' && 'showDirectoryPicker' in window
+);
+
+const csvStepStatus = computed(() => {
+    if (parsingRowErrors.value.length > 0) return formatCount(parsingRowErrors.value.length, 'error', 'errores');
+    if (parsingError.value) return 'Revisar archivo';
+    if (csvData.value.length > 0) return formatCount(csvData.value.length, 'fila válida', 'filas válidas');
+    return 'Pendiente';
+});
+
+const associationStepStatus = computed(() =>
+    hasAssociationData.value ? 'Completo' : 'Faltan datos'
+);
+
+const invoiceStepStatus = computed(() => {
+    if (!supportsInvoiceFolderPicker.value) return 'Navegador no compatible';
+    if (searchError.value) return 'Revisar carpeta';
+    if (invoiceFolderHandle.value) return formatCount(foundInvoicePdfs.value.size, 'encontrada', 'encontradas');
+    return 'Opcional';
+});
+
+const resultsStepStatus = computed(() => {
+    if (isGenerating.value) return 'Generando';
+    if (anexoResults.value.length > 0 || mergedPdfUrl.value) return 'Listo';
+    if (anexoError.value || pdfMergeError.value) return 'Con errores';
+    return 'Pendiente';
+});
+
 const showResultsSection = computed(() =>
     anexoResults.value.length > 0 || mergedPdfUrl.value || anexoError.value || pdfMergeError.value || isGenerating.value
 );
-
-// --- Datos para la tabla de columnas CSV ---
-const csvColumnColumns = [
-    { accessorKey: 'column', header: 'Columna' },
-    { accessorKey: 'required', header: 'Requerido' },
-    { accessorKey: 'description', header: 'Descripción' },
-    { accessorKey: 'missing', header: 'Si falta' }
-];
 
 const csvColumnData = [
     {
@@ -635,6 +645,24 @@ const csvColumnData = [
     }
 ];
 
+const getCsvRequiredLabel = (required: string) => {
+    if (required === '✓') return 'Requerida';
+    if (required === '(*)') return 'Condicional';
+    return 'Opcional';
+};
+
+const getCsvRequiredClass = (required: string) => {
+    if (required === '✓') return 'csv-badge-required';
+    if (required === '(*)') return 'csv-badge-conditional';
+    return 'csv-badge-optional';
+};
+
+const getCsvMissingClass = (missing: string) => {
+    if (missing.startsWith('Error')) return 'csv-missing-error';
+    if (missing.includes('descartada')) return 'csv-missing-warning';
+    return 'csv-missing-ok';
+};
+
 // --- Conectar Reseteo de CSV con otros Composables ---
 setInvoiceFolderHandleRef(invoiceFolderHandle);
 setFoundInvoicePdfsRef(foundInvoicePdfs);
@@ -656,10 +684,274 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Estilos específicos si son necesarios */
-/* Ajuste para que la tabla de errores no crezca indefinidamente */
-.overflow-auto {
-    max-height: 300px;
-    /* O la altura que prefieras */
+.step-chip {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    min-width: 0;
+    padding: 0.875rem;
+    border: 1px solid var(--ui-border);
+    border-radius: 0.875rem;
+    background: var(--ui-bg);
 }
+
+.step-chip strong,
+.step-chip small {
+    display: block;
+}
+
+.step-chip small {
+    margin-top: 0.125rem;
+    color: var(--ui-text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
+
+.step-number {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.step-chip-pending .step-number {
+    background: var(--ui-bg-elevated);
+    color: var(--ui-text-muted);
+}
+
+.step-chip-ready {
+    border-color: color-mix(in oklab, var(--ui-primary) 35%, transparent);
+    background: color-mix(in oklab, var(--ui-primary) 6%, transparent);
+}
+
+.step-chip-ready .step-number {
+    background: var(--ui-primary);
+    color: white;
+}
+
+.status-panel {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    border-radius: 0.875rem;
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+}
+
+.status-panel-muted {
+    background: var(--ui-bg-elevated);
+    color: var(--ui-text-muted);
+}
+
+.status-panel-success {
+    background: rgb(240 253 244);
+    color: rgb(21 128 61);
+}
+
+.status-panel-warning {
+    background: rgb(255 251 235);
+    color: rgb(180 83 9);
+}
+
+.status-panel-error {
+    background: rgb(254 242 242);
+    color: rgb(185 28 28);
+}
+
+:global(.dark) .status-panel-success {
+    background: rgb(20 83 45 / 0.22);
+    color: rgb(187 247 208);
+}
+
+:global(.dark) .status-panel-warning {
+    background: rgb(120 53 15 / 0.24);
+    color: rgb(253 230 138);
+}
+
+:global(.dark) .status-panel-error {
+    background: rgb(127 29 29 / 0.24);
+    color: rgb(254 202 202);
+}
+
+.csv-help-table-wrap {
+    overflow: hidden;
+    border: 1px solid var(--ui-border);
+    border-radius: 0.875rem;
+    background: var(--ui-bg);
+}
+
+.csv-help-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+}
+
+.csv-help-table th {
+    padding: 0.75rem 1rem;
+    background: color-mix(in oklab, var(--ui-primary) 8%, var(--ui-bg));
+    color: var(--ui-text-highlighted);
+    font-weight: 700;
+    text-align: left;
+}
+
+.csv-help-table td {
+    padding: 0.875rem 1rem;
+    border-top: 1px solid var(--ui-border);
+    vertical-align: top;
+}
+
+.csv-help-table th:nth-child(1),
+.csv-help-table td:nth-child(1) {
+    width: 8.5rem;
+}
+
+.csv-help-table th:nth-child(2),
+.csv-help-table td:nth-child(2) {
+    width: 8rem;
+}
+
+.csv-help-table th:nth-child(4),
+.csv-help-table td:nth-child(4) {
+    width: 13rem;
+}
+
+.csv-help-table code {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.csv-description {
+    color: var(--ui-text);
+    overflow-wrap: anywhere;
+}
+
+.csv-description span {
+    display: block;
+}
+
+.csv-description span + span {
+    margin-top: 0.25rem;
+    color: var(--ui-text-muted);
+}
+
+.csv-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.csv-badge-required {
+    background: rgb(254 226 226);
+    color: rgb(153 27 27);
+}
+
+.csv-badge-conditional {
+    background: rgb(254 243 199);
+    color: rgb(146 64 14);
+}
+
+.csv-badge-optional {
+    background: rgb(220 252 231);
+    color: rgb(22 101 52);
+}
+
+.csv-missing {
+    font-weight: 600;
+}
+
+.csv-missing-error {
+    color: rgb(185 28 28);
+}
+
+.csv-missing-warning {
+    color: rgb(180 83 9);
+}
+
+.csv-missing-ok {
+    color: rgb(21 128 61);
+}
+
+:global(.dark) .csv-badge-required {
+    background: rgb(127 29 29 / 0.35);
+    color: rgb(254 202 202);
+}
+
+:global(.dark) .csv-badge-conditional {
+    background: rgb(120 53 15 / 0.35);
+    color: rgb(253 230 138);
+}
+
+:global(.dark) .csv-badge-optional {
+    background: rgb(20 83 45 / 0.35);
+    color: rgb(187 247 208);
+}
+
+:global(.dark) .csv-missing-error {
+    color: rgb(254 202 202);
+}
+
+:global(.dark) .csv-missing-warning {
+    color: rgb(253 230 138);
+}
+
+:global(.dark) .csv-missing-ok {
+    color: rgb(187 247 208);
+}
+
+@media (max-width: 760px) {
+    .csv-help-table,
+    .csv-help-table thead,
+    .csv-help-table tbody,
+    .csv-help-table tr,
+    .csv-help-table th,
+    .csv-help-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .csv-help-table thead {
+        display: none;
+    }
+
+    .csv-help-table tr {
+        padding: 0.875rem 1rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .csv-help-table tr:first-child {
+        border-top: 0;
+    }
+
+    .csv-help-table td {
+        padding: 0.25rem 0;
+        border-top: 0;
+    }
+}
+
+.download-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--ui-primary) 8%, transparent);
+    padding: 0.625rem 0.75rem;
+    color: var(--ui-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.download-link:hover {
+    background: color-mix(in oklab, var(--ui-primary) 14%, transparent);
+}
+
 </style>
