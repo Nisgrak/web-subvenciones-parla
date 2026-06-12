@@ -95,6 +95,11 @@ export function useDocumentGeneration(
 
             for (let i = 0; i < csvData.value.length; i++) {
                 const factura = csvData.value[i];
+                if (!factura) {
+                    console.warn(`Fila ${i + 1} undefined, saltando.`);
+                    continue;
+                }
+
                 const proyectExpense = factura.grantExpense ?? 0;
 
                 // Validar datos esenciales para esta fila del Anexo
@@ -233,7 +238,7 @@ export function useDocumentGeneration(
                 console.log('Guardando PDF de facturas fusionadas...');
                 pdfMergeProgress.value = 98; // Casi listo
                 const pdfBytes = await masterInvoicePdf.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
                 mergedPdfUrl.value = URL.createObjectURL(blob);
                 console.log('PDF de facturas generado:', mergedPdfUrl.value);
             }

@@ -52,7 +52,7 @@ export function detectCsvSeparator(csvString: string, minColumnCount: number): s
     const lines = csvString.trim().split('\n');
     if (lines.length === 0) return ';'; // Default fallback
 
-    const firstLine = lines[0];
+    const firstLine = lines[0] ?? '';
     const possibleSeparators = [';', ',', '\t', '|'];
 
     // Buscar el separador que produzca al menos el número mínimo de columnas
@@ -74,7 +74,7 @@ export function detectCsvSeparator(csvString: string, minColumnCount: number): s
         Math.abs(a.count - minColumnCount) - Math.abs(b.count - minColumnCount)
     );
 
-    return counts[0].separator;
+    return counts[0]?.separator ?? ';';
 }
 
 /**
@@ -153,7 +153,7 @@ export const parseCsvContent = (
     const separator = detectCsvSeparator(csvString, csvColumns.length);
 
     // Leer y limpiar los nombres de la cabecera REAL del archivo
-    const headerNames = lines[0].split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
+    const headerNames = (lines[0] ?? '').split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
 
     // Crear mapa de cabeceras para búsqueda rápida (case-insensitive)
     const headerMap = new Map<string, number>();
@@ -182,7 +182,7 @@ export const parseCsvContent = (
     }
 
     for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
+        const line = (lines[i] ?? '').trim();
         if (!line) continue;
 
         // Lógica de parseo de línea CSV (manejo de comillas)
@@ -229,7 +229,7 @@ export const parseCsvContent = (
                 continue;
             }
 
-            const rawValue = cleanText(values[csvIndex]); // Limpiar caracteres problemáticos
+            const rawValue = cleanText(values[csvIndex] ?? ''); // Limpiar caracteres problemáticos
             const headerName = column.headerName; // Usar el nombre de cabecera definido
 
             // Validar campos requeridos usando el nombre de la cabecera
@@ -291,8 +291,9 @@ export const parseCsvContent = (
                 try {
                     // Estandarizar año a 4 dígitos (siempre 20XX)
                     const parts = formattedDate.split('/');
-                    if (parts[2].length === 2) {
-                        formattedDate = `${parts[0]}/${parts[1]}/20${parts[2]}`;
+                    const year = parts[2];
+                    if (year && year.length === 2) {
+                        formattedDate = `${parts[0]}/${parts[1]}/20${year}`;
                     }
                 } catch {
                     throw new Error(`Formato inválido. El formato debe ser DD/MM/YYYY`);
