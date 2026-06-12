@@ -29,6 +29,6 @@ export const loadPdf = async (file: File): Promise<PDFDocument> => {
         // } catch (fallbackError) {
         //     console.error(`Error al cargar ${file.name} (segundo intento):`, fallbackError);
         // }
-        throw new Error(`No se pudo cargar ${file.name}. Puede estar corrupto, protegido con contraseña o tener un formato no soportado.`);
+        throw new Error(`No se pudo cargar ${file.name}. Puede estar corrupto, protegido con contraseña o tener un formato no soportado.`, { cause: loadError });
     }
 }; 

@@ -30,7 +30,7 @@ export const loadPdfTemplate = async (url: string): Promise<PdfTemplate> => {
     } catch (err) {
         console.error(`Error cargando la plantilla PDF desde ${url}:`, err);
         const message = err instanceof Error ? err.message : 'Error desconocido';
-        throw new Error(`No se pudo cargar la plantilla PDF (${message}). Verifica que el archivo '${url}' existe en la carpeta 'public'.`);
+        throw new Error(`No se pudo cargar la plantilla PDF (${message}). Verifica que el archivo '${url}' existe en la carpeta 'public'.`, { cause: err });
     }
 };
 
@@ -104,7 +104,7 @@ export const fillInvoiceRow = (
 
     } catch (error) {
         console.error(`Error rellenando la fila ${index} para factura ${invoice.number}:`, error);
-        throw new Error(`Error procesando fila ${index}.`); // Relanzar para detener la generación
+        throw new Error(`Error procesando fila ${index}.`, { cause: error }); // Relanzar para detener la generación
     }
 };
 
@@ -168,7 +168,7 @@ export const finalizePage = (
 
     } catch (error) {
         console.error(`Error finalizando página:`, error);
-        throw new Error(`Error finalizando página.`);
+        throw new Error(`Error finalizando página.`, { cause: error });
     }
 };
 
@@ -188,7 +188,7 @@ export const savePdfToBlobUrl = async (pdfDoc: PDFDocument, filename: string): P
         return url;
     } catch (error) {
         console.error(`Error al guardar el PDF ${filename}:`, error);
-        throw new Error(`Error al generar el archivo PDF ${filename}.`);
+        throw new Error(`Error al generar el archivo PDF ${filename}.`, { cause: error });
     }
 };
 

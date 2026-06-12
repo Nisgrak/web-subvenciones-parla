@@ -39,6 +39,12 @@ interface ColumnOptions {
     discardEmpty?: boolean; // Si es true, no se guarda el campo si está vacío
 }
 
+type FacturaDateField = Extract<keyof Factura, 'date' | 'datePay'>;
+
+function isFacturaDateField(fieldName: keyof Factura): fieldName is FacturaDateField {
+    return fieldName === 'date' || fieldName === 'datePay';
+}
+
 /**
  * Detecta el separador más probable del CSV analizando la primera línea.
  * Prueba con los separadores más comunes y verifica que produzcan al menos
@@ -220,7 +226,7 @@ export const parseCsvContent = (
 
         const factura: Partial<Factura> = {};
         let validRow = true;
-        const rawDateValues: Record<string, string> = {}; // Guardar todas las fechas para validación posterior
+        const rawDateValues: Partial<Record<FacturaDateField, string>> = {}; // Guardar todas las fechas para validación posterior
 
         for (const column of csvColumns) {
             const csvIndex = columnIndexMap[column.name];
@@ -245,7 +251,7 @@ export const parseCsvContent = (
             }
 
             // Guardar valores de fechas para validación posterior
-            if (column.isDate && rawValue) {
+            if (column.isDate && rawValue && isFacturaDateField(column.name)) {
                 rawDateValues[column.name] = rawValue;
             }
 
@@ -308,8 +314,7 @@ export const parseCsvContent = (
                     throw new Error(`Fuera rango (${configStartDateString} - ${configEndDateString}).`);
                 }
 
-                const facturaKey = fieldName as keyof Factura;
-                factura[facturaKey] = formattedDate as any;
+                factura[fieldName as FacturaDateField] = formattedDate;
             } catch (dateError: unknown) {
                 const dateColumn = csvColumns.find(c => c.name === fieldName);
                 const dateHeaderName = dateColumn?.headerName || fieldName;
@@ -321,7 +326,7 @@ export const parseCsvContent = (
 
         // Verificar que las fechas requeridas estén presentes
         for (const column of csvColumns) {
-            if (column.isDate && column.required && !rawDateValues[column.name]) {
+            if (column.isDate && column.required && isFacturaDateField(column.name) && !rawDateValues[column.name]) {
                 errors.push({ line: i + 1, message: `Falta valor requerido en columna '${column.headerName}'.` });
                 validRow = false;
                 break;
