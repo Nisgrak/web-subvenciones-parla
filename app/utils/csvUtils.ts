@@ -160,7 +160,7 @@ export const parseCsvContent = (
     const separator = detectCsvSeparator(csvString, csvColumns.length);
 
     // Leer y limpiar los nombres de la cabecera REAL del archivo
-    const headerNames = (lines[0] ?? '').split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
+    const headerNames = (lines[0] ?? '').split(separator).map(h => cleanText(h).replace(/^"|"$/g, ''));
 
     // Crear mapa de cabeceras para búsqueda rápida (case-insensitive)
     const headerMap = new Map<string, number>();
