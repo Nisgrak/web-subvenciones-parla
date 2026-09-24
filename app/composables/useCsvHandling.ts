@@ -66,8 +66,18 @@ export function useCsvHandling(
 
             reader.onload = (e) => {
                 try {
-                    const content = e.target?.result as string;
-                    if (!content) throw new Error("No se pudo leer el contenido.");
+                    const buffer = e.target?.result as ArrayBuffer | null;
+                    if (!buffer) throw new Error("No se pudo leer el contenido.");
+
+                    // Excel en español suele exportar CSV como Windows-1252 (por
+                    // ejemplo, el símbolo €). Intenta primero UTF-8 y, si no es
+                    // válido, usa la codificación habitual de Windows.
+                    let content: string;
+                    try {
+                        content = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+                    } catch {
+                        content = new TextDecoder('windows-1252').decode(buffer);
+                    }
 
                     const parseResult = parseCsvContent(
                         content,
@@ -97,7 +107,7 @@ export function useCsvHandling(
                 resetCsvState();
             };
 
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         } else {
             resetCsvState(); // Si no se selecciona archivo, limpiar
         }
