@@ -1,4 +1,4 @@
-import { PDFDocument, type PDFForm } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFName, type PDFForm } from 'pdf-lib';
 // Quitar la importación duplicada de PDFForm y usar las de la línea anterior
 import type { Factura } from '~/types'; // Importar desde el nuevo archivo
 
@@ -9,6 +9,43 @@ export interface PdfTemplate {
     doc: PDFDocument;
     form: PDFForm;
 }
+
+/**
+ * Elimina entradas nulas o referencias a anotaciones inexistentes, conservando
+ * los enlaces y las demás anotaciones válidas. Devuelve el número de entradas eliminadas.
+ */
+export const removeInvalidPdfAnnotations = (pdfDoc: PDFDocument): number => {
+    let removed = 0;
+
+    for (const page of pdfDoc.getPages()) {
+        const annotations = page.node.Annots();
+        if (!annotations) continue;
+
+        for (let index = annotations.size() - 1; index >= 0; index--) {
+            const annotation = pdfDoc.context.lookup(annotations.get(index));
+            if (!(annotation instanceof PDFDict)) {
+                annotations.remove(index);
+                removed++;
+            }
+        }
+
+        if (annotations.size() === 0) {
+            page.node.delete(PDFName.of('Annots'));
+        }
+    }
+
+    return removed;
+};
+
+/**
+ * Aplana los campos y limpia sus referencias antes de copiar las páginas.
+ * pdf-lib 1.17.1 puede eliminar widgets sin retirar sus referencias de /Annots;
+ * Adobe rechaza esas referencias al guardar una firma digital.
+ */
+export const flattenPdfForm = (form: PDFForm): void => {
+    form.flatten();
+    removeInvalidPdfAnnotations(form.doc);
+};
 
 /**
  * Carga la plantilla PDF desde la carpeta public.
@@ -164,7 +201,7 @@ export const finalizePage = (
             console.warn(`Campo de importe no encontrado o error al rellenar: ${numField}`, e);
         }
 
-        form.flatten();
+        flattenPdfForm(form);
 
     } catch (error) {
         console.error(`Error finalizando página:`, error);
@@ -180,8 +217,7 @@ export const finalizePage = (
  */
 export const savePdfToBlobUrl = async (pdfDoc: PDFDocument, filename: string): Promise<string> => {
     try {
-        // NO APLANAR AQUÍ - Se hará en el documento final antes de llamar a esta función
-        // pdfDoc.getForm().flatten();
+        // Los campos del Anexo ya están aplanados y /Annots limpio antes de copiar sus páginas.
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);

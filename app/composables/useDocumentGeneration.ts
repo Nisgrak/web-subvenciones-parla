@@ -150,9 +150,8 @@ export function useDocumentGeneration(
             // Crear el documento final combinando todas las páginas generadas
             const finalAnexoDoc = await PDFLibDocument.create();
             for (const docToCopyFrom of anexoDocsList) {
-                // Aplanar aquí cada página *antes* de copiarla al documento final
-                // Esto evita problemas si los campos tienen nombres idénticos entre páginas
-                docToCopyFrom.getForm()?.flatten();
+                // finalizePage ya ha aplanado los campos y limpiado /Annots.
+                // No copiar referencias a widgets eliminados al documento final.
                 const [copiedPage] = await finalAnexoDoc.copyPages(docToCopyFrom, [0]); // Asumiendo una página por doc
                 finalAnexoDoc.addPage(copiedPage);
             }
@@ -306,4 +305,4 @@ export function useDocumentGeneration(
         generateDocuments,
         resetGenerationState // Exponer para resetear si es necesario
     };
-} 
+}
