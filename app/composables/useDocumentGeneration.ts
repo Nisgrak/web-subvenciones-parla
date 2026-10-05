@@ -3,7 +3,7 @@ import type { Ref, UnwrapNestedRefs } from 'vue';
 import { useAppConfig } from '#app';
 import { PDFDocument as PDFLibDocument, type PDFDocument, type PDFForm } from 'pdf-lib';
 import type { Factura } from '~/types';
-import { loadPdf } from '~/utils/fileUtils';
+import { getInvoiceKey, loadPdf } from '~/utils/fileUtils';
 import { loadPdfTemplate, fillInvoiceRow, finalizePage, savePdfToBlobUrl, type PdfTemplate } from '~/utils/pdfUtils';
 
 // Tipo para los datos del formulario de la asociación
@@ -18,7 +18,7 @@ export function useDocumentGeneration(
     csvData: Ref<Factura[]>,
     formData: AssociationFormData | UnwrapNestedRefs<AssociationFormData>,
     invoiceFolderHandle: Ref<FileSystemDirectoryHandle | null>,
-    foundInvoicePdfs: Ref<Map<string, File>> // Mapa con número original -> File
+    foundInvoicePdfs: Ref<Map<string, File>> // Mapa con getInvoiceKey(factura) -> File
 ) {
     const appConfig = useAppConfig();
     const pdfConfig = appConfig.pdfTemplate;
@@ -29,12 +29,14 @@ export function useDocumentGeneration(
     const anexoGenerationProgress = ref(0);
     const anexoResults = ref<{ name: string; url: string }[]>([]); // Solo Anexo III
     const anexoError = ref<string | null>(null); // Error específico Anexo III
+    const anexoSummary = ref<{ pages: number; invoices: number; total: number } | null>(null);
 
     // Fusión Facturas PDF
     const isMergingPdfs = ref(false);
     const pdfMergeProgress = ref(0);
     const mergedPdfUrl = ref<string | null>(null); // URL del PDF fusionado
     const pdfMergeError = ref<string | null>(null); // Error específico fusión
+    const mergedSummary = ref<{ invoices: number; pages: number } | null>(null);
 
     // Estado general combinado
     const isGenerating = computed(() => isGeneratingAnexo.value || isMergingPdfs.value);
@@ -50,6 +52,7 @@ export function useDocumentGeneration(
         }
         anexoResults.value = [];
         anexoError.value = null;
+        anexoSummary.value = null;
 
         isMergingPdfs.value = false;
         pdfMergeProgress.value = 0;
@@ -58,6 +61,7 @@ export function useDocumentGeneration(
         }
         mergedPdfUrl.value = null;
         pdfMergeError.value = null;
+        mergedSummary.value = null;
     };
 
     /**
@@ -77,6 +81,7 @@ export function useDocumentGeneration(
         const fields = pdfConfig.fields;
         const anexoDocsList: PDFDocument[] = [];
         let anexoTotalAcc = 0;
+        let anexoInvoiceCount = 0;
 
         try {
             let actualAnexoDoc: PDFDocument | null = null;
@@ -129,6 +134,7 @@ export function useDocumentGeneration(
                 fillInvoiceRow(actualAnexoForm!, fields, factura, invoiceInTemplateIndex, proyectExpense);
                 subtotalAcc += proyectExpense;
                 anexoTotalAcc += proyectExpense;
+                anexoInvoiceCount++;
                 invoiceInTemplateIndex++;
 
                 // Actualizar progreso (Anexo III es aprox. 50% del total si hay fusión)
@@ -157,9 +163,12 @@ export function useDocumentGeneration(
             }
 
             // Guardar como Blob URL
-            const anexoFilename = `AnexoIII_${formData.associationName || 'Asociacion'}.pdf`;
+            // Quitar caracteres que no se permiten en nombres de archivo
+            const safeName = (formData.associationName || 'Asociacion').replace(/[\\/:*?"<>|]+/g, '').trim();
+            const anexoFilename = `AnexoIII_${safeName || 'Asociacion'}.pdf`;
             const anexoUrl = await savePdfToBlobUrl(finalAnexoDoc, anexoFilename);
             anexoResults.value = [{ name: anexoFilename, url: anexoUrl }];
+            anexoSummary.value = { pages: finalAnexoDoc.getPageCount(), invoices: anexoInvoiceCount, total: anexoTotalAcc };
             anexoGenerationProgress.value = 100; // Marcar como 100% completado
             console.log('Anexo III generado con éxito.');
 
@@ -195,8 +204,9 @@ export function useDocumentGeneration(
 
         const masterInvoicePdf = await PDFLibDocument.create();
         let facturasProcesadas = 0;
+        let facturasUnidas = 0;
         // Filtrar las facturas del CSV que realmente se encontraron en la carpeta
-        const facturasAProcesar = csvData.value.filter(f => f.number && foundInvoicePdfs.value.has(f.number));
+        const facturasAProcesar = csvData.value.filter(f => f.number && foundInvoicePdfs.value.has(getInvoiceKey(f)));
 
         if (facturasAProcesar.length === 0) {
             console.log("Aunque se seleccionó carpeta, ninguna factura del CSV coincide con los archivos encontrados.");
@@ -207,7 +217,7 @@ export function useDocumentGeneration(
 
         try {
             for (const factura of facturasAProcesar) {
-                const file = foundInvoicePdfs.value.get(factura.number!)!;
+                const file = foundInvoicePdfs.value.get(getInvoiceKey(factura))!;
                 console.log(` - Fusionando ${file.name} (Num: ${factura.number})...`);
                 // Actualizar progreso (0-95%)
                 pdfMergeProgress.value = Math.round((facturasProcesadas / facturasAProcesar.length) * 95);
@@ -218,6 +228,7 @@ export function useDocumentGeneration(
                     // Copiar todas sus páginas al documento maestro
                     const tempPages = await masterInvoicePdf.copyPages(tempPdf, tempPdf.getPageIndices());
                     tempPages.forEach(page => masterInvoicePdf.addPage(page));
+                    facturasUnidas++;
                 } catch (processError) {
                     console.warn(`Error procesando ${file.name} para fusión:`, processError);
                     // Acumular errores sin detener el proceso
@@ -239,6 +250,7 @@ export function useDocumentGeneration(
                 const pdfBytes = await masterInvoicePdf.save();
                 const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
                 mergedPdfUrl.value = URL.createObjectURL(blob);
+                mergedSummary.value = { invoices: facturasUnidas, pages: masterInvoicePdf.getPageCount() };
                 console.log('PDF de facturas generado:', mergedPdfUrl.value);
             }
 
@@ -298,10 +310,12 @@ export function useDocumentGeneration(
         anexoGenerationProgress,
         anexoResults,
         anexoError,
+        anexoSummary,
         isMergingPdfs,
         pdfMergeProgress,
         mergedPdfUrl,
         pdfMergeError,
+        mergedSummary,
         generateDocuments,
         resetGenerationState // Exponer para resetear si es necesario
     };

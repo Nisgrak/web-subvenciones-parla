@@ -1,25 +1,27 @@
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import type { Factura } from '~/types';
-import { formatInvoiceNumber } from '~/utils/fileUtils';
+import { getAcceptedInvoiceFileNames, getExpectedInvoiceFileName, getInvoiceKey, normalizeInvoiceFileName } from '~/utils/fileUtils';
 
 export function useInvoiceFolder(csvData: Ref<Factura[]>) {
     // --- Estado Selección Carpeta ---
     const invoiceFolderHandle = ref<FileSystemDirectoryHandle | null>(null);
-    const foundInvoicePdfs = ref<Map<string, File>>(new Map()); // Clave: factura.number (original), Valor: File
-    const missingInvoiceNumbers = ref<string[]>([]);
+    const foundInvoicePdfs = ref<Map<string, File>>(new Map()); // Clave: getInvoiceKey(factura), Valor: File
+    const missingInvoiceNumbers = ref<string[]>([]); // Nombres de archivo esperados que no se encontraron
     const isProcessingFolder = ref(false); // Feedback visual mientras se buscan archivos
     const searchError = ref<string | null>(null); // Error específico de la búsqueda/acceso a carpeta
+    const unreadableFiles = ref<string[]>([]); // Facturas encontradas que no se pudieron leer
 
     /**
      * Resetea el estado de la carpeta de facturas.
      */
     const resetFolderState = () => {
         invoiceFolderHandle.value = null;
-        foundInvoicePdfs.value.clear();
+        foundInvoicePdfs.value = new Map();
         missingInvoiceNumbers.value = [];
         isProcessingFolder.value = false;
         searchError.value = null;
+        unreadableFiles.value = [];
     };
 
     /**
@@ -43,13 +45,15 @@ export function useInvoiceFolder(csvData: Ref<Factura[]>) {
             const handle = await window.showDirectoryPicker();
             invoiceFolderHandle.value = handle; // Guardar el handle
 
-            // Crear mapa de nombres esperados (formato facturaNNN.pdf) a número original
+            // Nombres aceptados (facturaNNN.pdf, facturaAA-NNN.pdf...) -> clave de la factura,
+            // y clave -> nombre recomendado para avisar de las que falten
             const expectedFiles = new Map<string, string>();
+            const recommendedNames = new Map<string, string>();
             csvData.value.forEach(factura => {
-                const formattedNum = formatInvoiceNumber(factura.number);
-                if (formattedNum !== 'invalid' && factura.number) {
-                    expectedFiles.set(`factura${formattedNum}.pdf`, factura.number);
-                }
+                const key = getInvoiceKey(factura);
+                const recommended = getExpectedInvoiceFileName(factura);
+                if (recommended) recommendedNames.set(key, recommended);
+                getAcceptedInvoiceFileNames(factura).forEach(name => expectedFiles.set(name, key));
             });
 
             if (expectedFiles.size === 0) {
@@ -59,41 +63,35 @@ export function useInvoiceFolder(csvData: Ref<Factura[]>) {
             }
 
             const foundMap = new Map<string, File>();
-            const tempMissing: string[] = Array.from(expectedFiles.values()); // Todos empiezan como faltantes
+            const tempUnreadable: string[] = [];
+            const tempMissing: string[] = Array.from(recommendedNames.keys()); // Claves; todas empiezan como faltantes
 
             // Iterar sobre los archivos de la carpeta seleccionada
             for await (const entry of handle.values()) {
-                if (entry.kind === 'file') {
-                    const entryNameLower = entry.name.toLowerCase();
-                    if (expectedFiles.has(entryNameLower)) {
-                        const originalNumber = expectedFiles.get(entryNameLower)!;
-                        try {
-                            const file = await entry.getFile();
-                            foundMap.set(originalNumber, file); // Usar número original como clave
-                            // Quitar de faltantes
-                            const missingIndex = tempMissing.indexOf(originalNumber);
-                            if (missingIndex > -1) {
-                                tempMissing.splice(missingIndex, 1);
-                            }
-                            console.log(`Factura encontrada: ${entry.name} (Num: ${originalNumber})`);
-                        } catch (fileError) {
-                            console.warn(`No se pudo acceder al archivo ${entry.name}:`, fileError);
-                            searchError.value = `Error al leer ${entry.name}. Verifica los permisos.`;
-                            // Si falla la lectura, asegurarnos que siga en la lista de faltantes
-                            if (!tempMissing.includes(originalNumber)) {
-                                tempMissing.push(originalNumber);
-                            }
-                        }
-                    }
+                if (entry.kind !== 'file') continue;
+                const expectedName = normalizeInvoiceFileName(entry.name);
+                const invoiceKey = expectedFiles.get(expectedName);
+                if (!invoiceKey) continue;
+
+                try {
+                    const file = await entry.getFile();
+                    foundMap.set(invoiceKey, file);
+                    const missingIndex = tempMissing.indexOf(invoiceKey);
+                    if (missingIndex > -1) tempMissing.splice(missingIndex, 1);
+                    console.log(`Factura encontrada: ${entry.name} (${invoiceKey})`);
+                } catch (fileError) {
+                    console.warn(`No se pudo acceder al archivo ${entry.name}:`, fileError);
+                    tempUnreadable.push(entry.name);
                 }
             }
 
             foundInvoicePdfs.value = foundMap;
-            missingInvoiceNumbers.value = tempMissing;
+            missingInvoiceNumbers.value = tempMissing.map(key => recommendedNames.get(key)!);
+            unreadableFiles.value = tempUnreadable;
 
             // Mensajes informativos (no bloqueantes)
             if (foundMap.size === 0) {
-                searchError.value = 'No se encontró ninguna factura PDF con el formato esperado (facturaNNN.pdf) en la carpeta.';
+                searchError.value = 'No hemos encontrado ninguna factura en esa carpeta. Los PDF deben llamarse facturaNNN.pdf (por ejemplo factura001.pdf).';
             } else if (tempMissing.length > 0) {
                 console.warn(`Facturas del CSV no encontradas en la carpeta: ${tempMissing.join(', ')}`);
                 // Podríamos poner un mensaje informativo en lugar de searchError
@@ -124,6 +122,7 @@ export function useInvoiceFolder(csvData: Ref<Factura[]>) {
         missingInvoiceNumbers,
         isProcessingFolder,
         searchError,
+        unreadableFiles,
         selectAndFindInvoicePdfs,
         resetFolderState // Exponer para resetear desde fuera si es necesario
     };

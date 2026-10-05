@@ -10,4 +10,5 @@ export interface Factura {
     expense: number | undefined;
     total: number | undefined;
     grantExpense: number | undefined; // Usado actualmente para 'projectExpense' en Anexo III
+    sharedNumber?: boolean; // Otra factura de otro año usa el mismo Nº orden
 } 

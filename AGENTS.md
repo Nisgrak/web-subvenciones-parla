@@ -6,7 +6,7 @@
 - `pnpm install` runs `nuxt prepare` via `postinstall`; rerun `pnpm exec nuxt prepare` if `.nuxt/` generated types/config are missing.
 - Dev server: `pnpm dev` on `http://localhost:3000`.
 - Production check: `pnpm build`; static output check: `pnpm generate`; local production preview: `pnpm preview` after build/generate.
-- No `lint`, `typecheck`, or `test` scripts are defined. Use `pnpm exec eslint .` for linting and `pnpm exec nuxt typecheck` only if typecheck support is installed/available.
+- Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (node test runner over `tests/*.test.ts`).
 
 ## Project Shape
 
@@ -19,10 +19,12 @@
 
 - The app generates Parla subsidy PDFs from CSV data entirely in the browser using `pdf-lib` and Blob URLs.
 - `public/Anexo III.pdf` is loaded at runtime by exact URL `/Anexo III.pdf`; field names and row limits are defined in `app.config.ts` under `pdfTemplate`. Keep the PDF asset and config in sync.
-- `public/Facturas Subvención - Plantilla.csv` is the user-facing CSV template; parser headers are defined in `utils/csvUtils.ts` (`csvColumns`). Update both when changing CSV columns.
+- The invoice file can be Excel (`.xlsx`/`.xls`/`.ods`, read lazily with SheetJS in `app/utils/spreadsheetUtils.ts`) or CSV; both go through `parseInvoiceRows` in `app/utils/csvUtils.ts`.
+- `public/Facturas Subvención - Plantilla.csv` is the source template; `public/Facturas Subvención - Plantilla.xlsx` is generated from it with `pnpm template:xlsx`. Column titles and accepted aliases (old `#`/`Número`) live in `csvColumns`. Update the CSV, `csvColumns` and regenerate the Excel when changing columns.
 - Valid invoice dates come from `app.config.ts` `invoiceDateRange` and are currently strings in `DD/MM/YYYY` format.
 - Optional invoice PDF merging depends on the browser File System Access API (`window.showDirectoryPicker`), so it works only in compatible browsers such as Chrome/Edge.
-- Invoice attachment filenames must be `facturaNNN.pdf`, where `NNN` is the zero-padded CSV `#` value from `utils/fileUtils.ts` `formatInvoiceNumber`.
+- `Nº orden` may repeat only across different invoice years (parser warns via `sharedNumbers`); those invoices use `facturaAA-NNN.pdf` (2-digit year + padded `Nº orden`). Any invoice is also found as `facturaAA-NNN.pdf`. Invoice keys/filenames come from `getInvoiceKey`/`getExpectedInvoiceFileName`/`getAcceptedInvoiceFileNames` in `app/utils/fileUtils.ts`.
+- Invoice attachment filenames must be `facturaNNN.pdf`, where `NNN` is the zero-padded `Nº orden` value from `utils/fileUtils.ts` `formatInvoiceNumber`.
 
 ## Implementation Notes
 
