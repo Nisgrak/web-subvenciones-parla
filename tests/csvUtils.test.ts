@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { convertFloat, normalizeDate, parseCsvContent, parseInvoiceRows, tokenizeCsv } from '../app/utils/csvUtils.ts';
+import { convertFloat, normalizeDate, parseCsvContent, parseInvoiceRows, selectInvoicesForGeneration, tokenizeCsv } from '../app/utils/csvUtils.ts';
 import { readSpreadsheetRows } from '../app/utils/spreadsheetUtils.ts';
 import { getAcceptedInvoiceFileNames, getExpectedInvoiceFileName, getInvoiceKey, normalizeInvoiceFileName } from '../app/utils/fileUtils.ts';
 
@@ -40,6 +40,7 @@ test('la plantilla CSV se lee sin errores', async () => {
     const result = parseCsv(csv);
     assert.equal(result.generalError, null);
     assert.deepEqual(result.errors, []);
+    assert.deepEqual(result.warnings, []);
     assert.equal(result.data.length, 4);
     assert.deepEqual(result.data[0], {
         number: '1',
@@ -91,9 +92,9 @@ test('detecta errores de negocio con la fila y un resumen para reconocerla', () 
     const result = parseCsv(csv);
 
     assert.equal(result.generalError, null);
-    assert.deepEqual(result.data.map(f => f.number), ['7']);
-    assert.equal(result.data[0]?.concept, 'Fruta fresca');
-    assert.equal(result.data[0]?.grantExpense, 8.25);
+    assert.deepEqual(result.data.map(f => f.number), ['5', '7']);
+    assert.equal(result.data[1]?.concept, 'Fruta fresca');
+    assert.equal(result.data[1]?.grantExpense, 8.25);
 
     const byLine = (line: number) => result.errors.filter(e => e.line === line).map(e => e.message).join(' | ');
     assert.match(byLine(2), /no puede ser mayor que el «Total Factura»/);
@@ -101,8 +102,79 @@ test('detecta errores de negocio con la fila y un resumen para reconocerla', () 
     assert.match(byLine(3), /«Fecha de pago».*anterior/);
     assert.match(byLine(4), /anterior al 01\/10\/2025/);
     assert.match(byLine(5), /ya se usa en la fila 2 para otra factura de 2025/);
-    assert.match(byLine(6), /Falta «Gasto Justificable»/);
+    assert.equal(byLine(6), '');
+    assert.equal(result.warnings[0]?.line, 6);
     assert.match(byLine(7), /mayor que 0/);
+});
+
+test('gasto justificable cero o vacío genera avisos sin descartar las facturas válidas', () => {
+    const result = parseCsv([
+        HEADER,
+        '1;A1;10/10/2025;;Ocio;Pan;;10;0',
+        '2;A2;10/10/2025;;Ocio;Leche;;20;',
+        '3;A3;10/10/2025;;Ocio;Agua;;30;   ',
+        '4;A4;10/10/2025;;Ocio;Fruta;;40;0,00 €',
+        '5;A5;10/10/2025;;Ocio;Té;;50;25'
+    ].join('\n'));
+
+    assert.equal(result.generalError, null);
+    assert.deepEqual(result.errors, []);
+    assert.deepEqual(result.data.map(f => f.grantExpense), [0, 0, 0, 0, 25]);
+    assert.deepEqual(result.warnings.map(w => w.line), [2, 3, 4, 5]);
+    assert.equal(result.warnings[1]?.context, 'Nº 2 · Leche · 20');
+    assert.match(result.warnings[0]!.message, /totalmente opcional/);
+
+    const defaultInvoices = selectInvoicesForGeneration(result.data);
+    const optionalInvoices = selectInvoicesForGeneration(result.data, true);
+    assert.deepEqual(defaultInvoices.map(f => f.number), ['5']);
+    assert.deepEqual(optionalInvoices.map(f => f.number), ['1', '2', '3', '4', '5']);
+    assert.equal(defaultInvoices.reduce((sum, f) => sum + f.grantExpense!, 0), 25);
+    assert.equal(optionalInvoices.reduce((sum, f) => sum + f.grantExpense!, 0), 25);
+    assert.equal(result.data.length, 5, 'La selección no modifica las facturas leídas');
+});
+
+test('solo con facturas no justificables la inclusión sigue siendo opt-in', () => {
+    const result = parseCsv(`${HEADER}\n1;A1;10/10/2025;;Ocio;Pan;;10;`);
+    assert.deepEqual(selectInvoicesForGeneration(result.data), []);
+    assert.equal(selectInvoicesForGeneration(result.data, true).length, 1);
+    assert.deepEqual(selectInvoicesForGeneration(result.data, false), []);
+});
+
+test('gasto justificable negativo o inválido y total cero siguen siendo errores', () => {
+    const result = parseCsv([
+        HEADER,
+        '1;A1;10/10/2025;;Ocio;Pan;;10;-1',
+        '2;A2;10/10/2025;;Ocio;Leche;;20;abc',
+        '3;A3;10/10/2025;;Ocio;Agua;;0;0',
+        '4;A4;10/10/2025;;Ocio;Té;;10;1.2.3'
+    ].join('\n'));
+    assert.deepEqual(result.data, []);
+    assert.deepEqual(result.warnings, [], 'No se ofrecen como opcionales filas con errores reales');
+    assert.deepEqual(result.errors.map(e => e.line), [2, 3, 4, 5]);
+    assert.match(result.errors[0]!.message, /igual o mayor que 0/);
+    assert.match(result.errors[1]!.message, /importe válido/);
+    assert.match(result.errors[2]!.message, /«Total Factura» debe ser mayor que 0/);
+});
+
+test('los avisos no impiden detectar números repetidos entre facturas justificables y opcionales', () => {
+    const result = parseCsv([
+        HEADER,
+        '1;A1;10/10/2025;;Ocio;Pan;;10;0',
+        '1;A2;10/10/2025;;Ocio;Leche;;20;10',
+        '1;A3;10/10/2026;;Ocio;Agua;;30;10'
+    ].join('\n'));
+    assert.equal(result.data.length, 1);
+    assert.equal(result.warnings.length, 1);
+    assert.match(result.errors[0]!.message, /ya se usa en la fila 2/);
+    assert.match(result.errors[1]!.message, /posterior/);
+});
+
+test('los avisos se devuelven vacíos ante errores generales del archivo', () => {
+    for (const csv of ['', HEADER, 'Nº orden;Fecha\n1;10/10/2025']) {
+        const result = parseCsv(csv);
+        assert.ok(result.generalError);
+        assert.deepEqual(result.warnings, []);
+    }
 });
 
 test('tokenizeCsv detecta el separador y conserva la fila original', () => {

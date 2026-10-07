@@ -64,6 +64,19 @@
                                 Las filas de ejemplo son solo orientativas: sustitúyelas por las tuyas.
                                 No cambies los títulos de la primera fila.
                             </p>
+                            <div class="status-panel status-panel-warning mt-3">
+                                <UIcon name="i-heroicons-information-circle" class="mt-0.5 size-5 shrink-0" />
+                                <div class="space-y-2">
+                                    <p>
+                                        <strong>Importante:</strong> debes justificar el importe <strong>SOLICITADO de la subvención, no el concedido</strong>.
+                                        Solo hay que enviar las facturas subvencionables; incluir las no justificables es <strong>totalmente opcional</strong>.
+                                    </p>
+                                    <p>
+                                        Recomendamos que el total justificable de las facturas supere ligeramente el importe solicitado.
+                                        Así tendrás un margen de seguridad si alguna factura no se acepta al revisar la justificación.
+                                    </p>
+                                </div>
+                            </div>
                             <UModal
                                 title="Qué poner en cada columna"
                                 description="Consulta esta guía mientras rellenas o corriges la plantilla."
@@ -171,11 +184,35 @@
                                 </div>
                             </div>
 
-                            <div v-else-if="csvFile && !isReadingFile && csvData.length > 0" class="status-panel status-panel-success">
+                            <div v-else-if="csvFile && !isReadingFile && parsedInvoices.length > 0" class="status-panel status-panel-success">
                                 <UIcon name="i-heroicons-check-circle" class="mt-0.5 size-5 shrink-0" />
                                 <div class="min-w-0">
                                     <p class="font-medium break-words">{{ csvFile.name }}</p>
                                     <p>{{ formatCount(csvData.length, 'factura lista', 'facturas listas') }} para el Anexo III.</p>
+                                </div>
+                            </div>
+
+                            <div v-if="parsingRowWarnings.length > 0 && !isReadingFile" class="status-panel status-panel-warning" role="status">
+                                <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
+                                <div class="min-w-0 space-y-3">
+                                    <h4 class="font-semibold">{{ formatCount(parsingRowWarnings.length, 'factura sin gasto justificable', 'facturas sin gasto justificable') }}</h4>
+                                    <p>El «Gasto Justificable» es 0 o está vacío. Estas facturas no aportan importe a la justificación y se excluyen por defecto.</p>
+                                    <details>
+                                        <summary class="cursor-pointer font-medium">Ver las filas con aviso</summary>
+                                        <ul class="mt-2 list-disc space-y-1 pl-5">
+                                            <li v-for="warning in parsingRowWarnings" :key="warning.line">
+                                                Fila {{ warning.line }}<span v-if="warning.context"> · {{ warning.context }}</span>
+                                            </li>
+                                        </ul>
+                                    </details>
+                                    <label class="flex min-h-11 cursor-pointer items-start gap-3 py-2">
+                                        <input v-model="includeNonJustifiable" type="checkbox" class="mt-1 size-4 shrink-0 accent-primary" :disabled="isBusy" aria-describedby="non-justifiable-help">
+                                        <span class="font-medium">Incluir también las facturas no justificables (totalmente opcional)</span>
+                                    </label>
+                                    <p id="non-justifiable-help" class="text-sm">
+                                        Se añadirán al Anexo III y, si eliges una carpeta, al PDF de facturas unidas, con 0 € justificables.
+                                        Si cambias esta opción, tendrás que volver a elegir la carpeta y generar los documentos.
+                                    </p>
                                 </div>
                             </div>
 
@@ -283,6 +320,7 @@
                                     <td>
                                         <span class="block">{{ factura.concept }}</span>
                                         <span class="block text-xs text-gray-500 dark:text-gray-400">{{ factura.activity }}</span>
+                                        <span v-if="!factura.grantExpense" class="block text-xs font-medium text-amber-700 dark:text-amber-300">No justificable · opcional</span>
                                     </td>
                                     <td class="whitespace-nowrap text-right tabular-nums max-sm:hidden">{{ formatEuro(factura.expense) }}</td>
                                     <td class="whitespace-nowrap text-right font-medium tabular-nums">{{ formatEuro(factura.grantExpense) }}</td>
@@ -340,13 +378,14 @@
             <UCard>
                 <template #header>
                     <h2 class="text-xl font-semibold text-gray-950 dark:text-white">3. Une las facturas en PDF <span class="font-normal text-gray-500">(opcional)</span></h2>
-                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Si eliges la carpeta donde las guardas, crearemos también un único PDF con todas, en el mismo orden.</p>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Si eliges la carpeta donde las guardas, crearemos también un único PDF con las facturas incluidas en el paso 1, en el mismo orden.</p>
                 </template>
 
                 <div class="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px] md:items-start">
                     <div class="space-y-3 text-sm leading-6 text-gray-700 dark:text-gray-300">
                         <p>Los archivos deben llamarse <code>facturaNNN.pdf</code>, por ejemplo <code>factura001.pdf</code> o <code>factura042.pdf</code>.</p>
                         <p>El número <code>NNN</code> es el de la columna «Nº orden» de tu plantilla.</p>
+                        <p v-if="includeNonJustifiable">También buscaremos las facturas sin gasto justificable que has decidido incluir.</p>
                         <p>También puedes poner delante el año con dos cifras: <code>factura26-001.pdf</code>, <code>factura25-042.pdf</code>.</p>
                         <p v-if="sharedNumbers.length > 0" class="font-medium text-amber-700 dark:text-amber-300">
                             Las facturas con «Nº orden» repetido llevan además el año: {{ joinList(sharedFileNames) }}.
@@ -394,6 +433,43 @@
                         <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
                         <p><strong>No hemos podido abrir:</strong> {{ unreadableFiles.join(', ') }}. Comprueba que no están abiertos en otro programa y vuelve a elegir la carpeta.</p>
                     </div>
+                </div>
+                <div v-if="invoiceFolderHandle && !isProcessingFolder" class="mt-6 space-y-3 border-t border-gray-200 pt-5 dark:border-gray-800">
+                    <h3 class="font-semibold text-gray-950 dark:text-white">Añade otros PDF <span class="font-normal text-gray-500 dark:text-gray-400">(opcional)</span></h3>
+                    <p id="extra-pdf-help" class="text-sm leading-6 text-gray-600 dark:text-gray-400">
+                        Puedes añadir otros documentos PDF. Se colocarán al final del PDF de facturas,
+                        en el orden de esta lista. Puedes mantener sus nombres originales.
+                    </p>
+                    <label for="extra-pdf-input" class="block text-sm font-medium text-gray-950 dark:text-white">Seleccionar PDF adicionales</label>
+                    <input
+                        id="extra-pdf-input"
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        multiple
+                        :disabled="isBusy"
+                        aria-describedby="extra-pdf-help"
+                        class="block w-full min-w-0 rounded-md text-sm text-gray-700 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-3 file:font-medium file:text-primary-700 hover:file:bg-primary-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 dark:text-gray-300 dark:file:bg-primary-950 dark:file:text-primary-300 dark:hover:file:bg-primary-900"
+                        @change="handleExtraPdfChange"
+                    >
+                    <div v-if="extraPdfSelectionError" class="status-panel status-panel-warning" role="alert">
+                        <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
+                        <p>{{ extraPdfSelectionError }}</p>
+                    </div>
+                    <ol v-if="extraPdfFiles.length > 0" class="divide-y divide-gray-200 dark:divide-gray-800" aria-label="PDF adicionales, en orden de inclusión">
+                        <li v-for="(file, index) in extraPdfFiles" :key="`${file.name}-${file.size}-${file.lastModified}`" class="flex items-center gap-3 py-2">
+                            <span class="shrink-0 text-sm text-gray-500 dark:text-gray-400">{{ index + 1 }}.</span>
+                            <span class="min-w-0 flex-1 break-words text-sm text-gray-700 dark:text-gray-300">{{ file.name }}</span>
+                            <UButton
+                                variant="ghost"
+                                color="neutral"
+                                icon="i-heroicons-x-mark"
+                                label="Quitar"
+                                :aria-label="`Quitar ${file.name}`"
+                                :disabled="isBusy"
+                                @click="removeExtraPdf(index)"
+                            />
+                        </li>
+                    </ol>
                 </div>
             </UCard>
 
@@ -460,7 +536,7 @@
                         </div>
                         <div v-if="isMergingPdfs">
                             <div class="mb-2 flex justify-between text-sm font-medium">
-                                <span>Uniendo facturas</span>
+                                <span>Uniendo facturas y documentos</span>
                                 <span>{{ pdfMergeProgress }}%</span>
                             </div>
                             <UProgress :model-value="pdfMergeProgress" size="sm" />
@@ -497,13 +573,14 @@
                             <h3 class="font-semibold text-gray-950 dark:text-white">Facturas unidas</h3>
                             <div v-if="mergedPdfUrl" class="mt-3 space-y-2">
                                 <p v-if="mergedSummary" class="text-sm text-green-700 dark:text-green-300">
-                                    Listo: {{ formatCount(mergedSummary.invoices, 'factura', 'facturas') }} en {{ formatCount(mergedSummary.pages, 'página', 'páginas') }}.
+                                    Listo: {{ formatCount(mergedSummary.invoices, 'factura', 'facturas') }}<template v-if="mergedSummary.extras > 0"> y {{ formatCount(mergedSummary.extras, 'PDF adicional', 'PDF adicionales') }}</template>
+                                    en {{ formatCount(mergedSummary.pages, 'página', 'páginas') }}.
                                 </p>
                                 <a :href="mergedPdfUrl" :download="MERGED_PDF_NAME" class="download-link">
                                     <UIcon name="i-heroicons-arrow-down-tray" class="size-4 shrink-0" />
                                     <span class="truncate">{{ MERGED_PDF_NAME }}</span>
                                 </a>
-                                <p v-if="pdfMergeError" class="text-sm text-amber-700 dark:text-amber-300">Algunas facturas no se han podido añadir. {{ pdfMergeError }}</p>
+                                <p v-if="pdfMergeError" class="text-sm text-amber-700 dark:text-amber-300">Algunos PDF no se han podido añadir. {{ pdfMergeError }}</p>
                             </div>
                             <div v-else-if="pdfMergeError" class="status-panel status-panel-error mt-3">
                                 <UIcon name="i-heroicons-exclamation-circle" class="mt-0.5 size-5 shrink-0" />
@@ -540,6 +617,7 @@ import { useInvoiceFolder } from '~/composables/useInvoiceFolder';
 import { useDocumentGeneration } from '~/composables/useDocumentGeneration';
 import { isValidCif, isValidDniNie, normalizeId } from '~/utils/idUtils';
 import { getExpectedInvoiceFileName, getInvoiceKey } from '~/utils/fileUtils';
+import { selectInvoicesForGeneration } from '~/utils/csvUtils';
 
 const LOCAL_STORAGE_KEY = 'associationFormData';
 const TEMPLATE_XLSX_URL = '/Facturas Subvención - Plantilla.xlsx';
@@ -622,23 +700,37 @@ const representativeIdWarning = computed(() =>
 
 // --- Inicializar Composables ---
 
+const includeNonJustifiable = ref(false);
+const extraPdfFiles = ref<File[]>([]);
+const extraPdfSelectionError = ref<string | null>(null);
+
 // Al cargar un archivo nuevo, la carpeta y los documentos generados dejan de valer
 const resetDependentSteps = () => {
     resetFolderState();
     resetGenerationState();
+    extraPdfFiles.value = [];
+    extraPdfSelectionError.value = null;
     lastGenerationKey.value = null;
 };
 
 const {
     csvFile,
-    csvData,
+    csvData: parsedInvoices,
     parsingError,
     parsingRowErrors,
+    parsingRowWarnings,
     sharedNumbers,
     isReadingFile,
     handleFileChange,
     loadFile
-} = useCsvHandling(startDateTimestamp, endDateTimestamp, configStartDateString, configEndDateString, () => resetDependentSteps());
+} = useCsvHandling(startDateTimestamp, endDateTimestamp, configStartDateString, configEndDateString, () => {
+    includeNonJustifiable.value = false;
+    resetDependentSteps();
+});
+
+const csvData = computed(() => selectInvoicesForGeneration(parsedInvoices.value, includeNonJustifiable.value));
+
+watch(includeNonJustifiable, resetDependentSteps, { flush: 'sync' });
 
 const {
     invoiceFolderHandle,
@@ -665,7 +757,7 @@ const {
     mergedSummary,
     generateDocuments,
     resetGenerationState
-} = useDocumentGeneration(csvData, formData, invoiceFolderHandle, foundInvoicePdfs);
+} = useDocumentGeneration(csvData, formData, invoiceFolderHandle, foundInvoicePdfs, extraPdfFiles);
 
 // --- Subida de archivo ---
 
@@ -675,6 +767,28 @@ const handleDrop = (event: DragEvent) => {
     isDragging.value = false;
     const file = event.dataTransfer?.files?.[0];
     if (file && !isBusy.value) void loadFile(file);
+};
+
+const handleExtraPdfChange = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (isBusy.value || !invoiceFolderHandle.value) return;
+
+    const rejected = files.filter(file => !/\.pdf$/i.test(file.name));
+    extraPdfSelectionError.value = rejected.length > 0
+        ? `Solo puedes añadir archivos PDF. No se han añadido: ${rejected.map(file => file.name).join(', ')}.`
+        : null;
+    for (const file of files) {
+        if (!/\.pdf$/i.test(file.name)) continue;
+        const alreadyAdded = extraPdfFiles.value.some(existing =>
+            existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified);
+        if (!alreadyAdded) extraPdfFiles.value.push(file);
+    }
+};
+
+const removeExtraPdf = (index: number) => {
+    if (!isBusy.value) extraPdfFiles.value.splice(index, 1);
 };
 
 // --- Formato ---
@@ -743,7 +857,11 @@ const hasAnyAssociationData = computed(() => Object.values(formData).some(value 
 
 const missingRequirements = computed(() => {
     const items: string[] = [];
-    if (csvData.value.length === 0) items.push('Subir el archivo de facturas sin errores (paso 1)');
+    if (csvData.value.length === 0) {
+        items.push(parsedInvoices.value.length > 0
+            ? 'Añadir facturas con gasto justificable o activar la inclusión opcional de las no justificables (paso 1)'
+            : 'Subir el archivo de facturas sin errores (paso 1)');
+    }
     missingAssociationFields.value.forEach(label => items.push(`${label} (paso 2)`));
     return items;
 });
@@ -769,8 +887,10 @@ const isDiscardConfirmOpen = ref(false);
 const lastGenerationKey = ref<string | null>(null);
 const generationKey = computed(() => JSON.stringify({
     form: formData,
+    includeNonJustifiable: includeNonJustifiable.value,
     file: csvFile.value ? [csvFile.value.name, csvFile.value.lastModified, csvData.value.length] : null,
-    invoices: [...foundInvoicePdfs.value.keys()]
+    invoices: [...foundInvoicePdfs.value.keys()],
+    extraPdfs: extraPdfFiles.value.map(file => [file.name, file.size, file.lastModified])
 }));
 
 const isOutdated = computed(() =>
@@ -821,6 +941,9 @@ const stepChips = computed<{ number: number; title: string; status: string; stat
         }
         if (sharedNumbers.value.length > 0) {
             return { status: `${formatCount(csvData.value.length, 'lista', 'listas')} · Nº repetidos`, state: 'warning' };
+        }
+        if (parsingRowWarnings.value.length > 0) {
+            return { status: `${formatCount(csvData.value.length, 'incluida', 'incluidas')} · ${parsingRowWarnings.value.length} opcionales`, state: 'warning' };
         }
         if (csvData.value.length > 0) return { status: formatCount(csvData.value.length, 'factura lista', 'facturas listas'), state: 'ready' };
         return { status: 'Pendiente', state: 'pending' };
@@ -873,7 +996,7 @@ const columnHelp = [
     { column: 'Concepto', required: true, description: ['Qué se compró o pagó (ej. «Fotocopias», «Desayuno», «Gasolina»).'] },
     { column: 'Proveedor', required: false, description: ['CIF y nombre del proveedor (ej. «B83409177 / SUR 4 COLORES SL»).'] },
     { column: 'Total Factura', required: true, description: ['Importe total de la factura (ej. 89,00 €).'] },
-    { column: 'Gasto Justificable', required: true, description: ['Parte de la factura que justificas con la subvención.', 'Igual o menor que el Total Factura.'] }
+    { column: 'Gasto Justificable', required: false, description: ['Parte de la factura que justificas con la subvención: igual o menor que el Total Factura.', 'Mantén el título de la columna. Si la celda está vacía o vale 0, se muestra un aviso y la factura se excluye por defecto; puedes incluirla de forma totalmente opcional.', 'Debes justificar el importe SOLICITADO de subvención, no el concedido.'] }
 ];
 
 // --- Limpieza al desmontar ---

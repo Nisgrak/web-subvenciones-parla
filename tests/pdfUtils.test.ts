@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { PDFDict, PDFDocument, PDFName, PDFNull, PDFRef } from 'pdf-lib';
 import { flattenPdfForm, removeInvalidPdfAnnotations } from '../app/utils/pdfUtils.ts';
-import { loadPdf } from '../app/utils/fileUtils.ts';
+import { getInvoiceKey, getInvoicePdfFiles, loadPdf, mergePdfFiles } from '../app/utils/fileUtils.ts';
+import { parseCsvContent, selectInvoicesForGeneration } from '../app/utils/csvUtils.ts';
 
 const templateUrl = new URL('../public/Anexo III.pdf', import.meta.url);
 
@@ -24,6 +25,76 @@ test('mantiene el mensaje de error al cargar un PDF adjunto inválido', async (t
     await assert.rejects(loadPdf(file), {
         message: 'No se pudo cargar factura001.pdf. Puede estar corrupto, protegido con contraseña o tener un formato no soportado.'
     });
+});
+
+const makePdfFile = async (name: string, pageWidths: number[]) => {
+    const doc = await PDFDocument.create();
+    for (const width of pageWidths) doc.addPage([width, 400]);
+    const bytes = await doc.save();
+    return new File([bytes.buffer as ArrayBuffer], name, { type: 'application/pdf' });
+};
+
+test('incluye las facturas no justificables elegidas y añade los PDF extra al final', async () => {
+    const parsed = parseCsvContent([
+        'Nº orden;Nº factura;Fecha;Actividad;Concepto;Total Factura;Gasto Justificable',
+        '1;A1;10/10/2025;Ocio;Pan;10;10',
+        '2;A2;10/10/2025;Ocio;Leche;20;0',
+        '3;A3;10/10/2025;Ocio;Agua;30;'
+    ].join('\n'), new Date(2025, 9, 1).getTime(), new Date(2026, 8, 30).getTime(), '01/10/2025', '30/09/2026');
+    const found = new Map([
+        [getInvoiceKey(parsed.data[2]!), await makePdfFile('factura003.pdf', [303])],
+        [getInvoiceKey(parsed.data[0]!), await makePdfFile('factura001.pdf', [101])],
+        [getInvoiceKey(parsed.data[1]!), await makePdfFile('factura002.pdf', [202])]
+    ]);
+    const extras = [await makePdfFile('Documento extra.pdf', [404, 405]), await makePdfFile('Otro documento.pdf', [506])];
+    const progress: number[] = [];
+
+    const selected = selectInvoicesForGeneration(parsed.data, true);
+    const files = getInvoicePdfFiles(selected, found);
+    assert.deepEqual(files.map(file => file.name), ['factura001.pdf', 'factura002.pdf', 'factura003.pdf']);
+    const merged = await mergePdfFiles(files, extras, value => progress.push(value));
+    const saved = await PDFDocument.load(await merged.doc.save());
+    assert.deepEqual(saved.getPages().map(page => page.getWidth()), [101, 202, 303, 404, 405, 506]);
+    assert.equal(merged.invoices, 3);
+    assert.equal(merged.extras, 2);
+    assert.deepEqual(merged.errors, []);
+    assert.equal(progress.at(-1), 95);
+    assert.ok(progress.every((value, index) => index === 0 || value >= progress[index - 1]!));
+
+    const defaultFiles = getInvoicePdfFiles(selectInvoicesForGeneration(parsed.data), found);
+    const defaultMerged = await mergePdfFiles(defaultFiles, []);
+    assert.deepEqual(defaultMerged.doc.getPages().map(page => page.getWidth()), [101]);
+    assert.equal(defaultMerged.extras, 0);
+});
+
+test('omite PDF extra inválidos sin perder los documentos válidos ni cambiar su orden', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const merged = await mergePdfFiles([await makePdfFile('factura001.pdf', [101])], [
+        new File(['No es un PDF'], 'Corrupto.pdf', { type: 'application/pdf' }),
+        await makePdfFile('Válido.pdf', [202, 203])
+    ]);
+    assert.deepEqual(merged.doc.getPages().map(page => page.getWidth()), [101, 202, 203]);
+    assert.equal(merged.invoices, 1);
+    assert.equal(merged.extras, 1);
+    assert.equal(merged.errors.length, 1);
+    assert.match(merged.errors[0]!, /Corrupto.pdf/);
+});
+
+test('puede unir PDF extra aunque no se encuentre ninguna factura', async () => {
+    const merged = await mergePdfFiles([], [await makePdfFile('Justificante.pdf', [101, 102])]);
+    assert.equal(merged.invoices, 0);
+    assert.equal(merged.extras, 1);
+    assert.equal(merged.doc.getPageCount(), 2);
+    assert.deepEqual(merged.errors, []);
+});
+
+test('si todos los PDF fallan no informa de documentos incluidos', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const merged = await mergePdfFiles([], [new File(['No es un PDF'], 'Corrupto.pdf')]);
+    assert.equal(merged.doc.getPageCount(), 0);
+    assert.equal(merged.invoices, 0);
+    assert.equal(merged.extras, 0);
+    assert.equal(merged.errors.length, 1);
 });
 
 const assertValidAnnotations = (doc: PDFDocument) => {

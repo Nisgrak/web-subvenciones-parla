@@ -109,6 +109,7 @@ export interface SharedOrderNumber {
 export interface CsvParseResult {
     data: Factura[];
     errors: RowError[];
+    warnings: RowError[];
     generalError: string | null;
     sharedNumbers: SharedOrderNumber[];
 }
@@ -287,10 +288,11 @@ export const parseInvoiceRows = (
 ): CsvParseResult => {
     const data: Factura[] = [];
     const errors: RowError[] = [];
+    const warnings: RowError[] = [];
 
     const [headerRow, ...bodyRows] = rows;
     if (!headerRow) {
-        return { data, errors, generalError: 'El archivo está vacío.', sharedNumbers: [] };
+        return { data, errors, warnings, generalError: 'El archivo está vacío.', sharedNumbers: [] };
     }
 
     // Mapear cada columna de la plantilla a su posición real en el archivo
@@ -309,13 +311,14 @@ export const parseInvoiceRows = (
         return {
             data,
             errors,
+            warnings,
             sharedNumbers: [],
             generalError: `${plural ? 'Faltan las columnas' : 'Falta la columna'} ${missingHeaders.join(', ')} en la primera fila. Usa la plantilla sin cambiar los títulos de las columnas.`
         };
     }
 
     if (bodyRows.length === 0) {
-        return { data, errors, generalError: 'El archivo solo tiene la fila de títulos. Añade una fila por cada factura.', sharedNumbers: [] };
+        return { data, errors, warnings, generalError: 'El archivo solo tiene la fila de títulos. Añade una fila por cada factura.', sharedNumbers: [] };
     }
 
     // Nº orden -> filas donde aparece, con el año de la factura (puede repetirse solo en años distintos)
@@ -343,7 +346,8 @@ export const parseInvoiceRows = (
             const label = `«${column.headerName}»`;
 
             if (!rawValue) {
-                if (column.required) rowErrors.push(`Falta ${label}.`);
+                if (column.name === 'grantExpense') factura.grantExpense = 0;
+                else if (column.required) rowErrors.push(`Falta ${label}.`);
                 continue;
             }
 
@@ -377,9 +381,9 @@ export const parseInvoiceRows = (
                     break;
                 case 'amount':
                     try {
-                        const amount = convertFloat(rawValue);
-                        if (amount === undefined || amount <= 0) {
-                            rowErrors.push(`${label} debe ser mayor que 0 y aquí pone «${rawValue}».`);
+                        const amount = column.name === 'grantExpense' ? (convertFloat(rawValue) ?? 0) : convertFloat(rawValue);
+                        if (amount === undefined || amount < 0 || (amount === 0 && column.name !== 'grantExpense')) {
+                            rowErrors.push(`${label} debe ser ${column.name === 'grantExpense' ? 'igual o mayor' : 'mayor'} que 0 y aquí pone «${rawValue}».`);
                         } else if (column.name === 'expense' || column.name === 'grantExpense') {
                             factura[column.name] = amount;
                         }
@@ -417,6 +421,14 @@ export const parseInvoiceRows = (
             continue;
         }
 
+        if (factura.grantExpense === 0) {
+            warnings.push({
+                line: row.line,
+                message: 'El «Gasto Justificable» es 0 o está vacío. Esta factura no justifica la subvención y su inclusión es totalmente opcional.',
+                context
+            });
+        }
+
         // Si no hay fecha de pago, se usa la fecha de la factura
         if (!factura.datePay) factura.datePay = factura.date;
         data.push(factura as Factura);
@@ -432,8 +444,12 @@ export const parseInvoiceRows = (
         sharedNumbers.push({ number, rows: entries.map(({ line, date }) => ({ line, date })) });
     }
 
-    return { data, errors, generalError: null, sharedNumbers };
+    return { data, errors, warnings, generalError: null, sharedNumbers };
 };
+
+/** Solo se incluyen facturas no justificables si el usuario lo elige expresamente. */
+export const selectInvoicesForGeneration = (invoices: Factura[], includeNonJustifiable = false): Factura[] =>
+    invoices.filter(invoice => includeNonJustifiable || (invoice.grantExpense ?? 0) > 0);
 
 /**
  * Parsea un string CSV a un array de objetos Factura.

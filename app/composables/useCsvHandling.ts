@@ -37,6 +37,7 @@ export function useCsvHandling(
     const csvData = ref<Factura[]>([]);
     const parsingError = ref<string | null>(null);
     const parsingRowErrors = ref<RowError[]>([]);
+    const parsingRowWarnings = ref<RowError[]>([]);
     const sharedNumbers = ref<SharedOrderNumber[]>([]);
     const isReadingFile = ref(false);
 
@@ -45,6 +46,7 @@ export function useCsvHandling(
         csvData.value = [];
         parsingError.value = null;
         parsingRowErrors.value = [];
+        parsingRowWarnings.value = [];
         sharedNumbers.value = [];
         onReset?.();
     };
@@ -80,12 +82,14 @@ export function useCsvHandling(
 
             csvData.value = parseResult.data;
             parsingRowErrors.value = parseResult.errors;
+            parsingRowWarnings.value = parseResult.warnings;
             parsingError.value = parseResult.generalError;
             sharedNumbers.value = parseResult.sharedNumbers;
         } catch (err: unknown) {
             console.error('Error procesando el archivo de facturas:', err);
             csvData.value = [];
             parsingRowErrors.value = [];
+            parsingRowWarnings.value = [];
             sharedNumbers.value = [];
             parsingError.value = err instanceof Error ? err.message : 'No se pudo leer el archivo.';
         } finally {
@@ -109,6 +113,7 @@ export function useCsvHandling(
         csvData,
         parsingError,
         parsingRowErrors,
+        parsingRowWarnings,
         sharedNumbers,
         isReadingFile,
         handleFileChange,

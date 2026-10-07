@@ -3,7 +3,7 @@ import type { Ref, UnwrapNestedRefs } from 'vue';
 import { useAppConfig } from '#app';
 import type { PDFDocument, PDFForm } from 'pdf-lib';
 import type { Factura } from '~/types';
-import { getInvoiceKey, loadPdf } from '~/utils/fileUtils';
+import { getInvoicePdfFiles, mergePdfFiles } from '~/utils/fileUtils';
 import type { PdfTemplate } from '~/utils/pdfUtils';
 
 // Tipo para los datos del formulario de la asociación
@@ -18,7 +18,8 @@ export function useDocumentGeneration(
     csvData: Ref<Factura[]>,
     formData: AssociationFormData | UnwrapNestedRefs<AssociationFormData>,
     invoiceFolderHandle: Ref<FileSystemDirectoryHandle | null>,
-    foundInvoicePdfs: Ref<Map<string, File>> // Mapa con getInvoiceKey(factura) -> File
+    foundInvoicePdfs: Ref<Map<string, File>>, // Mapa con getInvoiceKey(factura) -> File
+    extraPdfFiles: Ref<File[]>
 ) {
     const appConfig = useAppConfig();
     const pdfConfig = appConfig.pdfTemplate;
@@ -36,7 +37,7 @@ export function useDocumentGeneration(
     const pdfMergeProgress = ref(0);
     const mergedPdfUrl = ref<string | null>(null); // URL del PDF fusionado
     const pdfMergeError = ref<string | null>(null); // Error específico fusión
-    const mergedSummary = ref<{ invoices: number; pages: number } | null>(null);
+    const mergedSummary = ref<{ invoices: number; extras: number; pages: number } | null>(null);
 
     // Estado general combinado
     const isGenerating = computed(() => isGeneratingAnexo.value || isMergingPdfs.value);
@@ -188,10 +189,10 @@ export function useDocumentGeneration(
 
     /**
      * Genera un único PDF fusionando las facturas encontradas en `foundInvoicePdfs`
-     * que corresponden a entradas en `csvData`.
+     * que corresponden a entradas en `csvData`, seguidas de los PDF extra.
      */
     const mergeInvoicePdfs = async (): Promise<void> => {
-        if (!invoiceFolderHandle.value || foundInvoicePdfs.value.size === 0) {
+        if (!invoiceFolderHandle.value || (foundInvoicePdfs.value.size === 0 && extraPdfFiles.value.length === 0)) {
             console.log('No hay carpeta seleccionada o facturas encontradas para fusionar.');
             // Podríamos establecer un mensaje informativo en pdfMergeError si se desea
             // pdfMergeError.value = 'No se seleccionó carpeta o no se encontraron facturas válidas.';
@@ -207,12 +208,11 @@ export function useDocumentGeneration(
             mergedPdfUrl.value = null;
         }
 
-        let facturasProcesadas = 0;
-        let facturasUnidas = 0;
         // Filtrar las facturas del CSV que realmente se encontraron en la carpeta
-        const facturasAProcesar = csvData.value.filter(f => f.number && foundInvoicePdfs.value.has(getInvoiceKey(f)));
+        const invoiceFiles = getInvoicePdfFiles(csvData.value, foundInvoicePdfs.value);
+        const extraFiles = [...extraPdfFiles.value];
 
-        if (facturasAProcesar.length === 0) {
+        if (invoiceFiles.length === 0 && extraFiles.length === 0) {
             console.log("Aunque se seleccionó carpeta, ninguna factura del CSV coincide con los archivos encontrados.");
             pdfMergeError.value = "Ninguna factura del CSV coincide con los PDFs encontrados.";
             isMergingPdfs.value = false;
@@ -220,35 +220,14 @@ export function useDocumentGeneration(
         }
 
         try {
-            const { PDFDocument: PDFLibDocument } = await import('pdf-lib');
-            const masterInvoicePdf = await PDFLibDocument.create();
-            for (const factura of facturasAProcesar) {
-                const file = foundInvoicePdfs.value.get(getInvoiceKey(factura))!;
-                console.log(` - Fusionando ${file.name} (Num: ${factura.number})...`);
-                // Actualizar progreso (0-95%)
-                pdfMergeProgress.value = Math.round((facturasProcesadas / facturasAProcesar.length) * 95);
-
-                try {
-                    // Cargar el PDF de la factura individual
-                    const tempPdf = await loadPdf(file);
-                    // Copiar todas sus páginas al documento maestro
-                    const tempPages = await masterInvoicePdf.copyPages(tempPdf, tempPdf.getPageIndices());
-                    tempPages.forEach(page => masterInvoicePdf.addPage(page));
-                    facturasUnidas++;
-                } catch (processError) {
-                    console.warn(`Error procesando ${file.name} para fusión:`, processError);
-                    // Acumular errores sin detener el proceso
-                    if (!pdfMergeError.value) pdfMergeError.value = "Errores encontrados durante la fusión: ";
-                    pdfMergeError.value += `${file.name} (${(processError instanceof Error) ? processError.message : 'Error lectura'}); `;
-                }
-                facturasProcesadas++;
-                // Pequeña pausa para evitar congelar el navegador con muchos archivos
-                if (facturasProcesadas % 10 === 0) await new Promise(resolve => setTimeout(resolve, 20));
-            }
+            const { doc: masterInvoicePdf, invoices, extras, errors } = await mergePdfFiles(invoiceFiles, extraFiles, progress => {
+                pdfMergeProgress.value = progress;
+            });
+            pdfMergeError.value = errors.length > 0 ? errors.join(' ') : null;
 
             // Comprobar si se añadió alguna página al PDF maestro
             if (masterInvoicePdf.getPageCount() === 0) {
-                if (!pdfMergeError.value) pdfMergeError.value = "No se pudo añadir ninguna página de las facturas encontradas (posiblemente corruptas o protegidas).";
+                if (!pdfMergeError.value) pdfMergeError.value = "No se pudo añadir ninguna página. Comprueba que los PDF se pueden abrir y no están protegidos con contraseña.";
                 else pdfMergeError.value += " | No se añadió ninguna página válida al PDF final.";
             } else {
                 console.log('Guardando PDF de facturas fusionadas...');
@@ -256,7 +235,7 @@ export function useDocumentGeneration(
                 const pdfBytes = await masterInvoicePdf.save();
                 const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
                 mergedPdfUrl.value = URL.createObjectURL(blob);
-                mergedSummary.value = { invoices: facturasUnidas, pages: masterInvoicePdf.getPageCount() };
+                mergedSummary.value = { invoices, extras, pages: masterInvoicePdf.getPageCount() };
                 console.log('PDF de facturas generado:', mergedPdfUrl.value);
             }
 
@@ -294,9 +273,9 @@ export function useDocumentGeneration(
         // Lanzar generación de Anexo III (siempre se intenta)
         const anexoPromise = generateAnexoIII();
 
-        // Lanzar fusión de PDFs si hay carpeta y facturas encontradas
+        // Lanzar fusión de PDFs si hay carpeta y facturas encontradas o PDF extra
         let mergePromise: Promise<void> | null = null;
-        if (invoiceFolderHandle.value && foundInvoicePdfs.value.size > 0) {
+        if (invoiceFolderHandle.value && (foundInvoicePdfs.value.size > 0 || extraPdfFiles.value.length > 0)) {
             mergePromise = mergeInvoicePdfs();
         }
 

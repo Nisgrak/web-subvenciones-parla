@@ -19,6 +19,13 @@ export const formatInvoiceNumber = (numStr: string | undefined | null): string =
 export const getInvoiceKey = (factura: Pick<Factura, 'number' | 'date' | 'sharedNumber'>): string =>
     factura.sharedNumber ? `${factura.number}-${factura.date.slice(6)}` : factura.number;
 
+/** Recupera todos los PDF encontrados de las facturas incluidas, en el orden de la plantilla. */
+export const getInvoicePdfFiles = (invoices: Factura[], found: Map<string, File>): File[] =>
+    invoices.flatMap(invoice => {
+        const file = found.get(getInvoiceKey(invoice));
+        return file ? [file] : [];
+    });
+
 /**
  * Nombre que recomendamos para el PDF de una factura: facturaNNN.pdf, o
  * facturaAA-NNN.pdf (año con dos cifras + Nº orden) si su Nº orden se repite en otro año.
@@ -77,4 +84,38 @@ export const loadPdf = async (file: File): Promise<PDFDocument> => {
         // }
         throw new Error(`No se pudo cargar ${file.name}. Puede estar corrupto, protegido con contraseña o tener un formato no soportado.`, { cause: loadError });
     }
+};
+
+/** Une las facturas en su orden y añade después todos los PDF extra, sin perder los válidos si alguno falla. */
+export const mergePdfFiles = async (
+    invoiceFiles: File[],
+    extraFiles: File[],
+    onProgress?: (progress: number) => void
+): Promise<{ doc: PDFDocument; invoices: number; extras: number; errors: string[] }> => {
+    const { PDFDocument: PDFLibDocument } = await import('pdf-lib');
+    const doc = await PDFLibDocument.create();
+    const files = [
+        ...invoiceFiles.map(file => ({ file, extra: false })),
+        ...extraFiles.map(file => ({ file, extra: true }))
+    ];
+    let invoices = 0;
+    let extras = 0;
+    const errors: string[] = [];
+
+    for (const [index, { file, extra }] of files.entries()) {
+        try {
+            const source = await loadPdf(file);
+            if (source.getPageCount() === 0) throw new Error(`«${file.name}» no contiene páginas.`);
+            const pages = await doc.copyPages(source, source.getPageIndices());
+            pages.forEach(page => doc.addPage(page));
+            if (extra) extras++;
+            else invoices++;
+        } catch (err) {
+            errors.push(err instanceof Error ? err.message : `No se pudo añadir «${file.name}».`);
+        }
+        onProgress?.(Math.round(((index + 1) / files.length) * 95));
+        if ((index + 1) % 10 === 0) await new Promise(resolve => setTimeout(resolve, 20));
+    }
+
+    return { doc, invoices, extras, errors };
 };
