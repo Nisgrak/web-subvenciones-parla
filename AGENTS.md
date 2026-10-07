@@ -18,7 +18,7 @@
 ## Domain Couplings
 
 - The app generates Parla subsidy PDFs from CSV data entirely in the browser using `pdf-lib` and Blob URLs.
-- `public/Anexo III.pdf` is loaded at runtime by exact URL `/Anexo III.pdf`; field names and row limits are defined in `app.config.ts` under `pdfTemplate`. Keep the PDF asset and config in sync.
+- `public/Anexo III.pdf` is loaded at runtime by exact URL `/Anexo III.pdf`; field names and row limits are defined in `app.config.ts` under `pdfTemplate`. Keep the PDF asset and config in sync. The official template's 13 invoice-row fields are misaligned with the printed table; `pnpm template:anexo` (`scripts/align-anexo-fields.ts`) snaps them to the measured row lines — rerun/re-measure when replacing the PDF.
 - The invoice file can be Excel (`.xlsx`/`.xls`/`.ods`, read lazily with SheetJS in `app/utils/spreadsheetUtils.ts`) or CSV; both go through `parseInvoiceRows` in `app/utils/csvUtils.ts`.
 - `public/Facturas Subvención - Plantilla.csv` is the source template; `public/Facturas Subvención - Plantilla.xlsx` is generated from it with `pnpm template:xlsx`. Column titles and accepted aliases (old `#`/`Número`) live in `csvColumns`. Update the CSV, `csvColumns` and regenerate the Excel when changing columns.
 - Valid invoice dates come from `app.config.ts` `invoiceDateRange` and are currently strings in `DD/MM/YYYY` format.

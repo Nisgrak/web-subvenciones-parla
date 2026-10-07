@@ -1,4 +1,4 @@
-import { PDFDict, PDFDocument, PDFName, type PDFForm } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFName, type PDFForm, type PDFTextField } from 'pdf-lib';
 // Quitar la importación duplicada de PDFForm y usar las de la línea anterior
 import type { Factura } from '~/types'; // Importar desde el nuevo archivo
 
@@ -99,6 +99,22 @@ interface PdfFieldConfig {
     }
 }
 
+const ROW_FONT_SIZE = 9;
+const MIN_ROW_FONT_SIZE = 5;
+
+/**
+ * Devuelve un tamaño de letra menor que el de la plantilla si el texto no cabe
+ * en el ancho del campo (los textos largos se cortaban), o undefined si cabe.
+ */
+const fitFontSize = (form: PDFForm, field: PDFTextField, text: string): number | undefined => {
+    const widget = field.acroField.getWidgets()[0];
+    if (!widget || !text) return undefined;
+    const available = widget.getRectangle().width - 4; // margen interno de pdf-lib
+    const widthAtOne = form.getDefaultFont().widthOfTextAtSize(text, 1);
+    if (widthAtOne * ROW_FONT_SIZE <= available) return undefined;
+    return Math.max(MIN_ROW_FONT_SIZE, Math.floor((available / widthAtOne) * 2) / 2);
+};
+
 /**
  * Rellena una fila de la tabla de facturas en el formulario PDF.
  * @param form El objeto PDFForm.
@@ -119,10 +135,13 @@ export const fillInvoiceRow = (
         const fillTextField = (fieldName: string, text: string | number | undefined, maxLength?: number) => {
             try {
                 const field = form.getTextField(fieldName);
+                const value = text?.toString() ?? '';
 
                 field.setMaxLength(maxLength);
-                console.log(fieldName, text);
-                field.setText(text?.toString() ?? '');
+                console.log(fieldName, value);
+                const fontSize = fitFontSize(form, field, value);
+                if (fontSize) field.setFontSize(fontSize);
+                field.setText(value);
             } catch (e) {
                 console.warn(`Campo no encontrado o error al rellenar: ${fieldName}`, e);
             }

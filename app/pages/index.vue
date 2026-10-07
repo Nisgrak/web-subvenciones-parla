@@ -12,6 +12,21 @@
                 Rellena la plantilla con tus facturas, súbela y revisa lo que hemos leído antes de descargar los documentos.
                 Todo se hace en tu ordenador: tus archivos no se envían a ningún sitio.
             </p>
+            <figure class="mt-6">
+                <video
+                    class="aspect-video w-full rounded-xl bg-white shadow-sm ring-1 ring-primary/15"
+                    :src="TUTORIAL_VIDEO_URL"
+                    :poster="TUTORIAL_POSTER_URL"
+                    controls
+                    playsinline
+                    preload="none"
+                    aria-label="Vídeo explicativo: cómo generar el Anexo III en 4 pasos"
+                />
+                <figcaption class="mt-2 flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                    <UIcon name="i-heroicons-play-circle" class="size-4" />
+                    ¿Es tu primera vez? Mira este vídeo de 3 minutos antes de empezar.
+                </figcaption>
+            </figure>
         </header>
 
         <section class="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Estado del trámite">
@@ -622,6 +637,8 @@ import { selectInvoicesForGeneration } from '~/utils/csvUtils';
 const LOCAL_STORAGE_KEY = 'associationFormData';
 const TEMPLATE_XLSX_URL = '/Facturas Subvención - Plantilla.xlsx';
 const TEMPLATE_CSV_URL = '/Facturas Subvención - Plantilla.csv';
+const TUTORIAL_VIDEO_URL = '/tutorial-anexo-iii.mp4';
+const TUTORIAL_POSTER_URL = '/tutorial-anexo-iii.jpg';
 const MERGED_PDF_NAME = 'Facturas_Adjuntas.pdf';
 const MAX_INLINE_ERROR_ROWS = 5;
 

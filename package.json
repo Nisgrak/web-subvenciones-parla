@@ -11,7 +11,8 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "template:xlsx": "node --experimental-strip-types scripts/generate-xlsx-template.ts"
+    "template:xlsx": "node --experimental-strip-types scripts/generate-xlsx-template.ts",
+    "template:anexo": "node --experimental-strip-types scripts/align-anexo-fields.ts"
   },
   "dependencies": {
     "@nuxt/fonts": "0.14.0",
