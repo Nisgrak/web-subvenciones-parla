@@ -1,5 +1,4 @@
 import type { PDFDocument } from 'pdf-lib';
-import { PDFDocument as PDFLibDocument } from 'pdf-lib';
 import type { Factura } from '~/types';
 
 /**
@@ -65,6 +64,7 @@ export const normalizeInvoiceFileName = (name: string): string =>
 export const loadPdf = async (file: File): Promise<PDFDocument> => {
     const arrayBuffer = await file.arrayBuffer();
     try {
+        const { PDFDocument: PDFLibDocument } = await import('pdf-lib');
         // Intentar cargar ignorando la encriptación si es posible
         return await PDFLibDocument.load(arrayBuffer, { ignoreEncryption: true });
     } catch (loadError) {
@@ -77,4 +77,4 @@ export const loadPdf = async (file: File): Promise<PDFDocument> => {
         // }
         throw new Error(`No se pudo cargar ${file.name}. Puede estar corrupto, protegido con contraseña o tener un formato no soportado.`, { cause: loadError });
     }
-}; 
+};

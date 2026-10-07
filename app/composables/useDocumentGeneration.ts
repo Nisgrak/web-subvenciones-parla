@@ -1,10 +1,10 @@
 import { ref } from 'vue';
 import type { Ref, UnwrapNestedRefs } from 'vue';
 import { useAppConfig } from '#app';
-import { PDFDocument as PDFLibDocument, type PDFDocument, type PDFForm } from 'pdf-lib';
+import type { PDFDocument, PDFForm } from 'pdf-lib';
 import type { Factura } from '~/types';
 import { getInvoiceKey, loadPdf } from '~/utils/fileUtils';
-import { loadPdfTemplate, fillInvoiceRow, finalizePage, savePdfToBlobUrl, type PdfTemplate } from '~/utils/pdfUtils';
+import type { PdfTemplate } from '~/utils/pdfUtils';
 
 // Tipo para los datos del formulario de la asociación
 interface AssociationFormData {
@@ -84,6 +84,11 @@ export function useDocumentGeneration(
         let anexoInvoiceCount = 0;
 
         try {
+            // Cargar el motor PDF solo cuando se solicita generar el Anexo.
+            const [{ PDFDocument: PDFLibDocument }, { loadPdfTemplate, fillInvoiceRow, finalizePage, savePdfToBlobUrl }] = await Promise.all([
+                import('pdf-lib'),
+                import('~/utils/pdfUtils')
+            ]);
             let actualAnexoDoc: PDFDocument | null = null;
             let actualAnexoForm: PDFForm | null = null;
             let invoiceInTemplateIndex = 0;
@@ -202,7 +207,6 @@ export function useDocumentGeneration(
             mergedPdfUrl.value = null;
         }
 
-        const masterInvoicePdf = await PDFLibDocument.create();
         let facturasProcesadas = 0;
         let facturasUnidas = 0;
         // Filtrar las facturas del CSV que realmente se encontraron en la carpeta
@@ -216,6 +220,8 @@ export function useDocumentGeneration(
         }
 
         try {
+            const { PDFDocument: PDFLibDocument } = await import('pdf-lib');
+            const masterInvoicePdf = await PDFLibDocument.create();
             for (const factura of facturasAProcesar) {
                 const file = foundInvoicePdfs.value.get(getInvoiceKey(factura))!;
                 console.log(` - Fusionando ${file.name} (Num: ${factura.number})...`);

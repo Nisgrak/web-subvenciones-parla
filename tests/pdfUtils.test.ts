@@ -3,8 +3,28 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { PDFDict, PDFDocument, PDFName, PDFNull, PDFRef } from 'pdf-lib';
 import { flattenPdfForm, removeInvalidPdfAnnotations } from '../app/utils/pdfUtils.ts';
+import { loadPdf } from '../app/utils/fileUtils.ts';
 
 const templateUrl = new URL('../public/Anexo III.pdf', import.meta.url);
+
+test('carga un PDF adjunto con el motor importado bajo demanda', async () => {
+    const bytes = await readFile(templateUrl);
+    const file = new File([bytes], 'factura001.pdf', { type: 'application/pdf' });
+
+    const doc = await loadPdf(file);
+
+    assert.equal(doc.getPageCount(), 1);
+    assert.ok(doc.getForm().getFields().length > 0);
+});
+
+test('mantiene el mensaje de error al cargar un PDF adjunto inválido', async (t) => {
+    t.mock.method(console, 'error', () => {});
+    const file = new File(['No es un PDF'], 'factura001.pdf', { type: 'application/pdf' });
+
+    await assert.rejects(loadPdf(file), {
+        message: 'No se pudo cargar factura001.pdf. Puede estar corrupto, protegido con contraseña o tener un formato no soportado.'
+    });
+});
 
 const assertValidAnnotations = (doc: PDFDocument) => {
     for (const page of doc.getPages()) {
