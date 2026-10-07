@@ -83,7 +83,10 @@ durante el build, no en cada visita (no usamos `ssr: false`).
 `netlify.toml` configura el despliegue con:
 
 - **Build command:** `pnpm generate`
-- **Publish directory:** `.output/public`
+- **Publish directory:** `dist`
+
+En Netlify, Nuxt detecta la plataforma y usa el preset `netlify-static`, cuya
+salida es `dist`. En local, el preset `static` genera `.output/public`.
 
 Para comprobar la versión estática localmente:
 
@@ -92,7 +95,13 @@ pnpm generate
 pnpm preview
 ```
 
-Publica el directorio `.output/public` completo, incluidas las plantillas de `public/`.
+Para comprobar la misma salida que se publica en Netlify:
+
+```bash
+NITRO_PRESET=netlify-static pnpm generate
+```
+
+Netlify publica el directorio `dist` completo, incluidas las plantillas de `public/`.
 Los cambios en la configuración, las fechas o las plantillas requieren un nuevo
 despliegue. La librería PDF se carga solo al generar documentos y SheetJS solo al
 leer un archivo Excel. Desactivamos el prefetch de módulos opcionales para que
